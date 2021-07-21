@@ -1,4 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_STATIC
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +21,8 @@ int main (int argc, char **argv) {
             exit(EXIT_FAILURE);
         }
         printf("Loaded image with a width of %dpx, a height of %dpx and %d channels\n\n", width, height, channels);
+    
+    stbi_write_jpg("images/results/testGrayScaleCPU.jpg", width, height, channels, load, 100);   // 100 
 
     
 }
