@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "stb_image_write.h": "c",
+        "grayscale.h": "c",
+        "grayscale.c": "cpp"
+    }
+}

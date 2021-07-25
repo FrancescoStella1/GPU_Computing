@@ -9,9 +9,11 @@
 #include "./stb_image/stb_image.h"
 #include "./stb_image/stb_image_write.h"
 #include "./utils/grayscale.c"
+#include "./utils/CUDA/grayscale_gpu.cu"
 
 
-int CUDA_CHECK = 0;     // Temporary
+int CUDA_CHECK = 1;     // Temporary
+
 
 int main (int argc, char **argv) {
     if(CUDA_CHECK) {
@@ -48,13 +50,13 @@ int main (int argc, char **argv) {
 
     // Load image and convert to grayscale
     int width, height, channels;
-    unsigned char *load;
+    unsigned char *img;
 
     if (argc > 1)
-        load = stbi_load(argv[1], &width, &height, &channels, 0);
+        img = stbi_load(argv[1], &width, &height, &channels, 0);
     else
-        load = stbi_load("images/calciatore.jpg", &width, &height, &channels, 0);
-    if (load == NULL){
+        img = stbi_load("images/calciatore.jpg", &width, &height, &channels, 0);
+    if (img == NULL){
         printf("Error loading the image... \n");
         exit(EXIT_FAILURE);
     }
@@ -63,9 +65,21 @@ int main (int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    size_t size = width * height;
-    unsigned char *gray = calloc(width*height, sizeof(load));
+    size_t size = width * height * sizeof(unsigned char);
+    //printf("Size of the image: %zu\n\n", size);
+
     printf("Loaded image with a width of %dpx, a height of %dpx and %d channels\n\n", width, height, channels);   
-    convert(load, gray, size);
-    stbi_write_jpg("images/results/testGrayScaleCPU.jpg", width, height, 1, gray, 100);   // 100 
+
+    // Host memory allocation and copy of the loaded image
+    unsigned char *h_img = (unsigned char *)malloc(size*channels);     // 3 channels
+    unsigned char *h_img_gray = (unsigned char *)malloc(size);
+    memcpy(h_img, img, size*3);
+
+    
+    //convert(h_img, h_img_gray, size);
+    cuda_convert(h_img, h_img_gray, size);
+    stbi_write_jpg("images/results/testGrayScaleCPU.jpg", width, height, 1, h_img_gray, 100);
+
+    // GPU
+
 }

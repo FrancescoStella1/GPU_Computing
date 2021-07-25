@@ -1,3 +1,4 @@
+#pragma once
 #include "grayscale.h"
 
 void convert(unsigned char *img, unsigned char *img_gray, const size_t size) {
