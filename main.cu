@@ -10,9 +10,10 @@
 #include "./stb_image/stb_image_write.h"
 #include "./utils/grayscale.c"
 #include "./utils/CUDA/grayscale_gpu.cu"
+#include "./utils/gamma.c"
 
 
-int CUDA_CHECK = 1;     // Temporary
+int CUDA_CHECK = 0;     // Temporary
 
 
 int main (int argc, char **argv) {
@@ -76,10 +77,9 @@ int main (int argc, char **argv) {
     memcpy(h_img, img, size*3);
 
     
-    //convert(h_img, h_img_gray, size);
-    cuda_convert(h_img, h_img_gray, size);
+    convert(h_img, h_img_gray, size);
+    struct Histogram *hist = createHistogram();
+    gamma_correction(hist, h_img_gray, size);
+    //cuda_convert(h_img, h_img_gray, size);
     stbi_write_jpg("images/results/testGrayScaleCPU.jpg", width, height, 1, h_img_gray, 100);
-
-    // GPU
-
 }
