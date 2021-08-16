@@ -24,7 +24,6 @@ void gamma_correction(struct Histogram *hist, unsigned char *img_gray, const siz
         hist->num[*p/L] += 1;
     }
 
-    struct Histogram *c_hist = createHistogram();
     printf("\n\n---------\n\n");
     // First cumulative bin equal to the first original bin
     hist->cnum[0] = hist->num[0];

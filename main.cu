@@ -11,6 +11,7 @@
 #include "./utils/grayscale.c"
 #include "./utils/CUDA/grayscale_gpu.cu"
 #include "./utils/gamma.c"
+#include "./utils/CUDA/gamma_gpu.cu"
 
 
 int CUDA_CHECK = 0;     // Temporary
@@ -79,7 +80,8 @@ int main (int argc, char **argv) {
     
     convert(h_img, h_img_gray, size);
     struct Histogram *hist = createHistogram();
-    gamma_correction(hist, h_img_gray, size);
+    //gamma_correction(hist, h_img_gray, size);
+    cuda_gamma_correction(hist, h_img_gray, size);
     //cuda_convert(h_img, h_img_gray, size);
     stbi_write_jpg("images/results/testGrayScaleCPU.jpg", width, height, 1, h_img_gray, 100);
 }
