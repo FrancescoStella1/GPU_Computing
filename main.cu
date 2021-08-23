@@ -15,6 +15,7 @@
 
 
 int CUDA_CHECK = 0;     // Temporary
+int WRITE = 1;          // Temporary
 
 
 int main (int argc, char **argv) {
@@ -79,9 +80,12 @@ int main (int argc, char **argv) {
 
     
     convert(h_img, h_img_gray, size);
-    struct Histogram *hist = createHistogram();
-    //gamma_correction(hist, h_img_gray, size);
-    cuda_gamma_correction(hist, h_img_gray, size);
     //cuda_convert(h_img, h_img_gray, size);
-    stbi_write_jpg("images/results/testGrayScaleCPU.jpg", width, height, 1, h_img_gray, 100);
+    if(WRITE)
+        stbi_write_jpg("images/results/testGrayScale.jpg", width, height, 1, h_img_gray, 100);
+    struct Histogram *hist = createHistogram();
+    gamma_correction(hist, h_img_gray, size);
+    //cuda_gamma_correction(h_img_gray, size);
+    if(WRITE)
+        stbi_write_jpg("images/results/testGammaCorrection.jpg", width, height, 1, h_img_gray, 100);
 }

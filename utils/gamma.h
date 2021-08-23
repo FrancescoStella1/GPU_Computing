@@ -9,7 +9,7 @@
 #define STRUCT_HIST
 
 struct Histogram {
-    unsigned short *num;
+    unsigned int *num;
     long *cnum;
 };
 
@@ -22,6 +22,18 @@ struct Histogram {
  * @return a pointer to a struct Histogram.
 */
 struct Histogram *createHistogram();
+
+
+/**
+ * Computes gamma by creating a cumulative histogram and retrieving min, median and max values.
+ * 
+ * @param num pointer to the histogram.
+ * @param cnum pointer to the cumulative histogram.
+ * @param max pointer to the max value in the cumulative histogram.
+ * @param size size of the grayscale image.
+ * @return normalized gamma value.
+*/
+double compute_gamma(unsigned int *num, long *cnum, long *max, const size_t size);
 
 
 /**
@@ -45,8 +57,7 @@ void gamma_correction(struct Histogram *hist, unsigned char *img_gray, const siz
 /**
  * Applies Gamma correction algorithm on GPU.
  * 
- * @param hist pointer to a struct Histogram.
  * @param h_img_gray host pointer to the grayscale image.
  * @param size size of the grayscale image.
 */
-void cuda_gamma_correction(struct Histogram *hist, unsigned char *h_img_gray, const size_t size);
+void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size);
