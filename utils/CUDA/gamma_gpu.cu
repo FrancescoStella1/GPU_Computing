@@ -19,16 +19,17 @@ __global__ void apply_gamma_gpu(unsigned char *img_gray, double gamma, double fa
     if(i>=size)
       return;
     
-    img_gray[i] = (unsigned char)(factor*pow((double)*img_gray, 1/gamma));
+    img_gray[i] = (unsigned char)(factor*pow(img_gray[i], 1/gamma));
+
 }
 
 
 void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
     struct Histogram *hist = createHistogram();
+    unsigned char *max_intensity = (unsigned char *)calloc(1, sizeof(unsigned char));
     size_t nBytes = (256/L)*sizeof(unsigned int);
     unsigned char *d_img_gray;
     unsigned int *d_num;
-    unsigned char max_intensity = 0;
     double g = 0;
     double factor = 0;
 
@@ -48,12 +49,6 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
     dim3 grid;
     block.x = BLOCKDIM;
     grid.x = ((size + block.x - 1)/block.x);
-    /*
-    printf(" --- [FIRST ITERATION] --- \n\n");
-    for(int idx=0; idx<(256/L); idx++) {
-        printf("Bin %d: %u\n", idx, hist->num[idx]);
-    }
-    */
 
     // Run first kernel
     double start = seconds();
@@ -66,21 +61,17 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
     CHECK(cudaMemcpy(hist->num, d_num, nBytes, cudaMemcpyDeviceToHost));
     CHECK(cudaMemcpy(h_img_gray, d_img_gray, size, cudaMemcpyDeviceToHost));
 
-    // Compute max intensity
-    for(int idx=(256/L)-1; idx>=0; idx--) {
-        if((hist->num[idx])>0)
-            max_intensity = hist->num[idx] + (L/2);
-    }
-    printf("Maximum pixel intensity in the grayscale image: %u\n", max_intensity);
-
     // Free memory
     CHECK(cudaFree(d_img_gray));
     CHECK(cudaFree(d_num));
 
     // Compute cumulative histogram and normalized gamma value on CPU
-    g = compute_gamma(hist->num, hist->cnum, size);
-    factor = max_intensity/pow(max_intensity, 1/g);
+    g = compute_gamma(hist->num, hist->cnum, size, max_intensity);
+    printf("Maximum pixel intensity in the grayscale image: %u\n", *max_intensity);
+    factor = *max_intensity/pow(*max_intensity, 1/g);
     printf("Normalized gamma value: %f\n", g);
+    printf("Factor: %f\n", factor);
+    printf("Max intensity: %u\n", *max_intensity);
 
     // Reallocate device memory
     CHECK(cudaMalloc((void **)&d_img_gray, size));
@@ -105,10 +96,4 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
     // Free memory
     CHECK(cudaFree(d_img_gray));
     
-    /*
-    printf(" --- [SECOND ITERATION] --- \n\n");
-    for(int idx=0; idx<(256/L); idx++) {
-        printf("Bin %d: %u\n", idx, hist->num[idx]);
-    }
-    */
 }

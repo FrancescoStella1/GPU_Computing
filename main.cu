@@ -15,7 +15,8 @@
 
 
 int CUDA_CHECK = 0;     // Temporary
-int WRITE = 1;          // Temporary
+int WRITE = 0;          // Temporary
+int CPU = 1;            // Temporary
 
 
 int main (int argc, char **argv) {
@@ -69,7 +70,6 @@ int main (int argc, char **argv) {
     }
 
     size_t size = width * height * sizeof(unsigned char);
-    //printf("Size of the image: %zu\n\n", size);
 
     printf("Loaded image with a width of %dpx, a height of %dpx and %d channels\n\n", width, height, channels);   
 
@@ -78,14 +78,19 @@ int main (int argc, char **argv) {
     unsigned char *h_img_gray = (unsigned char *)malloc(size);
     memcpy(h_img, img, size*3);
 
-    
-    convert(h_img, h_img_gray, size);
-    //cuda_convert(h_img, h_img_gray, size);
+    // Grayscale conversion on CPU/GPU
+    CPU ? convert(h_img, h_img_gray, size) : cuda_convert(h_img, h_img_gray, size);
+
     if(WRITE)
         stbi_write_jpg("images/results/testGrayScale.jpg", width, height, 1, h_img_gray, 100);
+
     struct Histogram *hist = createHistogram();
-    gamma_correction(hist, h_img_gray, size);
-    //cuda_gamma_correction(h_img_gray, size);
+
+    // Gamma correction on CPU/GPU
+    CPU ? gamma_correction(hist, h_img_gray, size) : cuda_gamma_correction(h_img_gray, size);
+
     if(WRITE)
         stbi_write_jpg("images/results/testGammaCorrection.jpg", width, height, 1, h_img_gray, 100);
+
+    printf("\n\n [DONE] \n\n");
 }
