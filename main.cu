@@ -12,6 +12,7 @@
 #include "./utils/CUDA/grayscale_gpu.cu"
 #include "./utils/gamma.c"
 #include "./utils/CUDA/gamma_gpu.cu"
+#include "./utils/gradient.c"
 
 
 int CUDA_CHECK = 0;     // Temporary
@@ -91,6 +92,17 @@ int main (int argc, char **argv) {
 
     if(WRITE)
         stbi_write_jpg("images/results/testGammaCorrection.jpg", width, height, 1, h_img_gray, 100);
+
+    unsigned char* gradientX = (unsigned char*) malloc (size);
+    unsigned char* gradientY = (unsigned char*) malloc (size);
+
+    convolutionHorizontal(h_img_gray, gradientX, height, width);
+    convolutionVertical(h_img_gray, gradientY, height, width);
+
+    if(WRITE) {
+        stbi_write_jpg("images/results/gradientX.jpg", width, height, 1, gradientX, 100);
+        stbi_write_jpg("images/results/gradientY.jpg", width, height, 1, gradientY, 100);
+    }
 
     printf("\n\n [DONE] \n\n");
 }
