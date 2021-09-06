@@ -14,12 +14,12 @@
 #include "./utils/CUDA/gamma_gpu.cu"
 #include "./utils/gradient.c"
 #include "./utils/CUDA/gradient_gpu.cu"
-#include "./utils/gradient_utils.c"
-#include "./utils/CUDA/gradient_utils_gpu.cu"
+#include "./utils/hog_utils.c"
+#include "./utils/CUDA/hog_utils_gpu.cu"
 
 
 int CUDA_CHECK = 0;     // Temporary
-int WRITE = 1;          // Temporary
+int WRITE = 0;          // Temporary
 int CPU = 1;            // Temporary
 
 
@@ -125,6 +125,11 @@ int main (int argc, char **argv) {
     if(WRITE) {
         stbi_write_jpg("images/results/magnitude.jpg", width, height, 1, magnitude, 100);
         stbi_write_jpg("images/results/direction.jpg", width, height, 1, direction, 100);
+    }
+
+
+    if(CPU) {
+        compute_hog(magnitude, direction, width, height);
     }
 
     printf("\n\n [DONE] \n\n");

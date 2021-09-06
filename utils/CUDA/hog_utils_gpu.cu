@@ -1,3 +1,4 @@
+#include "../hog_utils.h"
 
 #define BLOCKDIM   32
 
@@ -10,7 +11,8 @@ __global__ void magnitude_gpu(unsigned char *gradientX, unsigned char *gradientY
 
 }
 
-void cuda_magnitude(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, int size) {
+
+void cuda_compute_magnitude(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, int size) {
 
     unsigned char *d_gradientX;
     unsigned char *d_gradientY;
@@ -42,3 +44,7 @@ void cuda_magnitude(unsigned char *gradientX, unsigned char *gradientY, unsigned
     CHECK(cudaFree(d_gradientY));
     CHECK(cudaFree(d_magnitude));
 }
+
+
+
+void cuda_compute_direction(unsigned char *gradientX, unsigned char *gradientY, signed char *direction, int size);
