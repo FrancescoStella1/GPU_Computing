@@ -33,10 +33,11 @@ void convolutionVertical(unsigned char *img_gray, unsigned char *img_gradient, i
 /**
  * Calculates horizontal and vertical gradients of a grayscale image.
  * 
- * @param img_gray_h input grayscale image used to compute horizontal gradient.
- * @param img_gray_v input grayscale image used to compute vertical gradient.
+ * @param img_gray pointer to grayscale image used to compute gradients.
+ * @param img_grad_h pointer to the image representing the horizontal gradient of the original one.
+ * @param img_grad_v pointer to the image representing the vertical gradient of the original one.
  * @param width width of the input grayscale image.
  * @param height height of the input grayscale image.
  * 
 */
-void cuda_compute_gradients(unsigned char *img_gray_h, unsigned char *img_gray_v, int width, int height);
+void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, unsigned char *img_grad_v, int width, int height);

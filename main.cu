@@ -104,7 +104,7 @@ int main (int argc, char **argv) {
         convolutionVertical(h_img_gray, gradientY, height, width);
     }
     else {
-        cuda_compute_gradients(gradientX, gradientY, width, height);
+        cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height);
     }
 
     if(WRITE) {
@@ -119,8 +119,9 @@ int main (int argc, char **argv) {
         compute_magnitude(gradientX, gradientY, magnitude, width*height);
         compute_direction(gradientX, gradientY, direction, width*height);
     }
-
-    // Insert cuda functions
+    else {
+        // Insert cuda functions
+    }
 
     if(WRITE) {
         stbi_write_jpg("images/results/magnitude.jpg", width, height, 1, magnitude, 100);
