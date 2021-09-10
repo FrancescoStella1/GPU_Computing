@@ -3,12 +3,12 @@
 #define TILE_WIDTH   (BLOCKDIM + MASK_SIZE - 1)
 
 
-__device__ __constant__ int sobelX[MASK_SIZE*MASK_SIZE];
-__device__ __constant__ int sobelY[MASK_SIZE*MASK_SIZE];
+__constant__ int sobelX[MASK_SIZE*MASK_SIZE*sizeof(int)];
+__constant__ int sobelY[MASK_SIZE*MASK_SIZE*sizeof(int)];
 
 
 
-__global__ void convolutionHorizontal_gpu(unsigned char *input_image, unsigned char *img_grad_x, unsigned char *img_grad_v, int width, int height) {
+__global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_grad_x, unsigned char *img_grad_v, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -103,6 +103,7 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
 
     const int h_sobelX[] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
     const int h_sobelY[] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
+    const size_t mask_dim = sizeof(int)*MASK_SIZE*MASK_SIZE;
 
     CHECK(cudaMalloc((void **)&d_img_grad, size));
     CHECK(cudaMalloc((void **)&d_grad_h, size));
@@ -113,8 +114,8 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     }
 
     // Copy sobel operators to constant memory
-    CHECK(cudaMemcpyToSymbol(sobelX, &h_sobelX, sizeof(&h_sobelX), cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpyToSymbol(sobelY, &h_sobelY, sizeof(&h_sobelY), cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpyToSymbol(sobelX, &h_sobelX, mask_dim));
+    CHECK(cudaMemcpyToSymbol(sobelY, &h_sobelY, mask_dim));
 
     CHECK(cudaMemcpy(d_img_grad, img_gray, size, cudaMemcpyHostToDevice));
 
@@ -122,7 +123,7 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     dim3 grid((width + BLOCKDIM - 1)/BLOCKDIM, (height + BLOCKDIM - 1)/BLOCKDIM);
   
     // Kernel launch
-    convolutionHorizontal_gpu<<<grid, block>>>(d_img_grad, d_grad_h, d_grad_v, width, height);
+    convolutions_gpu<<<grid, block>>>(d_img_grad, d_grad_h, d_grad_v, width, height);
     CHECK(cudaDeviceSynchronize());
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess)
