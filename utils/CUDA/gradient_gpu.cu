@@ -90,8 +90,8 @@ __global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_
     __syncthreads();
     
     // write in global memory
-    img_grad_x[y*width + x] = sum_x;
-    img_grad_v[y*width + x] = sum_y;
+    img_grad_x[y*width + x] = abs(sum_x);
+    img_grad_v[y*width + x] = abs(sum_y);
 }
 
 
@@ -105,9 +105,9 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     const int h_sobelY[] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
     const size_t mask_dim = sizeof(int)*MASK_SIZE*MASK_SIZE;
 
-    CHECK(cudaMalloc((void **)&d_img_grad, size));
-    CHECK(cudaMalloc((void **)&d_grad_h, size));
-    CHECK(cudaMalloc((void **)&d_grad_v, size));
+    CHECK(cudaMallocHost((void **)&d_img_grad, size));
+    CHECK(cudaMallocHost((void **)&d_grad_h, size));
+    CHECK(cudaMallocHost((void **)&d_grad_v, size));
     if(d_img_grad == NULL || d_grad_h == NULL || d_grad_v == NULL) {
         printf("Unable to allocate memory on GPU.\n");
         exit(EXIT_FAILURE);
@@ -117,23 +117,28 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     CHECK(cudaMemcpyToSymbol(sobelX, &h_sobelX, mask_dim));
     CHECK(cudaMemcpyToSymbol(sobelY, &h_sobelY, mask_dim));
 
-    CHECK(cudaMemcpy(d_img_grad, img_gray, size, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpyAsync(d_img_grad, img_gray, size, cudaMemcpyHostToDevice));
+    CHECK(cudaDeviceSynchronize());
 
     dim3 block(BLOCKDIM, BLOCKDIM);
     dim3 grid((width + BLOCKDIM - 1)/BLOCKDIM, (height + BLOCKDIM - 1)/BLOCKDIM);
-  
+    
     // Kernel launch
     convolutions_gpu<<<grid, block>>>(d_img_grad, d_grad_h, d_grad_v, width, height);
     CHECK(cudaDeviceSynchronize());
+    
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess)
         printf("%s\n", cudaGetErrorString(err));
 
     // D2H transfer
-    CHECK(cudaMemcpy(img_grad_h, d_grad_h, size, cudaMemcpyDeviceToHost));
-    CHECK(cudaMemcpy(img_grad_v, d_grad_v, size, cudaMemcpyDeviceToHost));
+    CHECK(cudaMemcpyAsync(img_grad_h, d_grad_h, size, cudaMemcpyDeviceToHost));
+    CHECK(cudaMemcpyAsync(img_grad_v, d_grad_v, size, cudaMemcpyDeviceToHost));
 
-    CHECK(cudaFree(d_img_grad));
-    CHECK(cudaFree(d_grad_h));
-    CHECK(cudaFree(d_grad_v));
+    // Host-Device synchronization
+    CHECK(cudaDeviceSynchronize());
+
+    CHECK(cudaFreeHost(d_img_grad));
+    CHECK(cudaFreeHost(d_grad_h));
+    CHECK(cudaFreeHost(d_grad_v));
 }

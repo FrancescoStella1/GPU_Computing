@@ -16,8 +16,8 @@ struct Hog {
  * Computes magnitude of the gradients.
  * @param gradientX pointer to the horizontal gradient array.
  * @param gradientY pointer to the vertical gradient array.
- * @param magnitude pointer to the magnitude of gradients array.
- * @param size size of the input arrays.
+ * @param magnitude pointer to the magnitude of gradients.
+ * @param size size of the input gradients.
  *
 */
 void compute_magnitude(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, int size);
@@ -28,8 +28,8 @@ void compute_magnitude(unsigned char *gradientX, unsigned char *gradientY, unsig
  *
  * @param gradientX pointer to the horizontal gradient array.
  * @param gradientY pointer to the vertical gradient array.
- * @param direction pointer to the direction of gradients array.
- * @param size size of the input arrays.
+ * @param direction pointer to the direction of gradients.
+ * @param size size of the input gradients.
  *
 */
 void compute_direction(unsigned char *gradientX, unsigned char *gradientY, signed char *direction, int size);
@@ -47,7 +47,18 @@ void compute_direction(unsigned char *gradientX, unsigned char *gradientY, signe
 void compute_hog(unsigned char *magnitude, unsigned char *direction, int width, int height);
 
 
-void cuda_compute_magnitude(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, int size);
+/**
+ * Computes magnitude and direction of the gradients.
+ * 
+ * @param gradientX pointer to the horizontal gradient array.
+ * @param gradientY pointer to the vertical gradient array.
+ * @param magnitude pointer to the magnitude of the gradients.
+ * @param direction pointer to the direction of the gradients.
+ * @param size size of the input gradients.
+ * 
+*/
+void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int size);
 
 
-void cuda_compute_direction(unsigned char *gradientX, unsigned char *gradientY, unsigned char *direction, int size);
+
+void cuda_compute_hog(unsigned char *gradientX, unsigned char *gradientY, unsigned char *direction, int size);
