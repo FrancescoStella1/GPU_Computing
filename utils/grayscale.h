@@ -16,6 +16,7 @@ void convert(unsigned char *img, unsigned char *img_gray, const size_t size);
  * 
  * @param h_img host pointer to the image to convert.
  * @param h_img_gray host pointer to the grayscale image.
- * @param size of the converted image.
+ * @param width width of the image.
+ * @param height height of the image.
 */
-void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, const size_t size);
+void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, int height);

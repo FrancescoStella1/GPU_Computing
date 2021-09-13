@@ -83,7 +83,7 @@ int main (int argc, char **argv) {
     memcpy(h_img, img, size*3);
 
     // Grayscale conversion on CPU/GPU
-    CPU ? convert(h_img, h_img_gray, size) : cuda_convert(h_img, h_img_gray, size);
+    CPU ? convert(h_img, h_img_gray, size) : cuda_convert(h_img, h_img_gray, width, height);
 
     if(WRITE)
         stbi_write_jpg("images/results/testGrayScale.jpg", width, height, 1, h_img_gray, 100);
