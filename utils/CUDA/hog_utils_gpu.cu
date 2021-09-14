@@ -1,5 +1,6 @@
 #include "../hog_utils.h"
 
+#define BLOCKDIM_HOG   64
 
 __global__ void mag_dir_gpu(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int size) {
     uint i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -15,6 +16,30 @@ __global__ void mag_dir_gpu(unsigned char *gradientX, unsigned char *gradientY, 
     magnitude[i] = (unsigned char)mag;
     direction[i] = (unsigned char)atang;
 
+}
+
+
+__global__ void hog_gpu(float *bins, unsigned char *magnitude, unsigned char *direction, int width, int height) {
+    uint i = blockIdx.x * blockDim.x + threadIdx.x;
+    uint j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if(i >= width || j >= height)
+        return;
+
+    int lbin = direction[i*width + j]/DELTA_THETA;
+    int ubin = lbin + 1;
+    if(ubin>=NUM_BINS)
+      ubin = 0;
+
+    int cbin = (lbin + 0.5);
+
+    float l_value = magnitude[i*width + j] * ((direction[i*width + j] - DELTA_THETA/2)/DELTA_THETA);  // value of the j-th bin
+    float u_value = magnitude[i*width + j] * ((direction[i*width + j] - cbin)/DELTA_THETA);
+
+    int blocks_per_row = (width + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
+    int block_idx = blockIdx.y * blocks_per_row + blockIdx.x;
+    atomicAdd(&bins[block_idx*NUM_BINS + lbin], l_value);
+    atomicAdd(&bins[block_idx*NUM_BINS + ubin], u_value);
 }
 
 
@@ -58,4 +83,44 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
     CHECK(cudaFreeHost(d_gradientY));
     CHECK(cudaFreeHost(d_magnitude));
     CHECK(cudaFreeHost(d_direction));
+}
+
+
+void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int width, int height) {
+    unsigned char *d_magnitude, *d_direction;
+    float *d_bins;
+    size_t size = width*height;
+    int num_blocks = (width*height)/HOG_BLOCK_SIDE + 1;
+    size_t nBytes = NUM_BINS*num_blocks*sizeof(float);
+
+    struct Hog *hog = (struct Hog *)malloc(sizeof(struct Hog));
+    hog->bins = (float *)calloc(NUM_BINS*num_blocks, sizeof(float));
+    
+    CHECK(cudaMallocHost((void **)&d_magnitude, size));
+    CHECK(cudaMallocHost((void **)&d_direction, size));
+    CHECK(cudaMallocHost((void **)&d_bins, nBytes));
+    if(d_magnitude == NULL || d_direction == NULL || d_bins == NULL) {
+        printf("Unable to allocate memory on GPU.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // To do: implement streams
+    CHECK(cudaMemcpyAsync(d_magnitude, magnitude, size, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpyAsync(d_direction, direction, size, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpyAsync(d_bins, hog->bins, nBytes, cudaMemcpyHostToDevice));
+    CHECK(cudaDeviceSynchronize());
+
+    dim3 block(BLOCKDIM_HOG, BLOCKDIM_HOG);
+    dim3 grid((width + block.x - 1)/block.x, (height + block.y - 1)/block.y);
+
+    hog_gpu<<< grid, block >>>(d_bins, d_magnitude, d_direction, width, height);
+    CHECK(cudaDeviceSynchronize());
+
+    CHECK(cudaMemcpyAsync(hog->bins, d_bins, nBytes, cudaMemcpyDeviceToHost));
+
+    CHECK(cudaDeviceSynchronize());
+
+    CHECK(cudaFreeHost(d_magnitude));
+    CHECK(cudaFreeHost(d_direction));
+    CHECK(cudaFreeHost(d_bins));
 }

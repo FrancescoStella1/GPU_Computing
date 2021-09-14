@@ -27,28 +27,30 @@ void compute_hog(unsigned char *magnitude, unsigned char *direction, int width, 
   
   while(row < height) {
     while(col < width) {
-      for(int i=row; i<(height/HOG_BLOCK_SIDE); i++) {
-        for(int j=col; j<(width/HOG_BLOCK_SIDE); j++) {
-          int lbin = (direction[i*width + j] - DELTA_THETA/2)/DELTA_THETA;
+      for(int i = row; i < row + HOG_BLOCK_SIDE; i++) {
+        for(int j = col; j < col + HOG_BLOCK_SIDE; j++) {
+          int lbin = direction[i*width + j]/DELTA_THETA; //(direction[i*width + j] - DELTA_THETA/2)/DELTA_THETA;
           int ubin = lbin + 1;
-          if(ubin>NUM_BINS-1)
-            ubin=0;
+          if(ubin>=NUM_BINS)
+            ubin = 0;
 
-          int cbin = DELTA_THETA*(lbin + 0.5);
-          hog->bins[block_idx*NUM_BINS + lbin] += (magnitude[i*width + col] * ((direction[i*width + col] - DELTA_THETA/2)/DELTA_THETA));  // value of the j-th bin
-          hog->bins[block_idx*NUM_BINS + ubin] += (magnitude[i*width + col] * ((direction[i*width + col] - cbin)/DELTA_THETA));
+          int cbin = (lbin + 0.5);
+
+          float l_value = magnitude[i*width + j] * ((direction[i*width + col] - DELTA_THETA/2)/DELTA_THETA);  // value of the j-th bin
+          float u_value = magnitude[i*width + j] * ((direction[i*width + col] - cbin)/DELTA_THETA);
+          hog->bins[block_idx*NUM_BINS + lbin] += l_value;
+          hog->bins[block_idx*NUM_BINS + ubin] += u_value;
         }
       }
-      block_idx += 1;
-      col += (width/HOG_BLOCK_SIDE);
+      col += HOG_BLOCK_SIDE;
     }
     block_idx += 1;
-    row += (height/HOG_BLOCK_SIDE);
+    row += HOG_BLOCK_SIDE;
     col = 0;
   }
-  printf("Last row, col and blockIdx: %d %d %d\n", row, col, block_idx);
+  /*
   for(int i=0; i<9; i++) {
-    printf("%d Bin value: %.2f\n", i+1, hog->bins[i]);
+    printf("Bin %d \t value: %.2f\n", i+1, hog->bins[i]);
   }
-
+  */
 }

@@ -60,5 +60,11 @@ void compute_hog(unsigned char *magnitude, unsigned char *direction, int width, 
 void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int size);
 
 
-
-void cuda_compute_hog(unsigned char *gradientX, unsigned char *gradientY, unsigned char *direction, int size);
+/**
+ * Compute HOG from magnitude and direction.
+ * @param magnitude pointer to the magnitude vector.
+ * @param direction pointer to the direction vector.
+ * @param width width of the image.
+ * @param height height of the image.
+*/
+void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int width, int height);
