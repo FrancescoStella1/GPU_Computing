@@ -67,13 +67,17 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
 
     CHECK(cudaDeviceSynchronize());
 
-    dim3 block;
-    dim3 grid;
-    block.x = BLOCKDIM;
-    grid.x = ((size+block.x-1)/block.x);
+    dim3 block(BLOCKDIM);
+    dim3 grid((size+block.x-1)/block.x);
 
     mag_dir_gpu<<< grid, block >>>(d_gradientX, d_gradientY, d_magnitude, d_direction, size);
     CHECK(cudaDeviceSynchronize());
+    
+    cudaError_t err = cudaGetLastError();
+    if(err != cudaSuccess) {
+        printf("\n--> Error: %s\n", cudaGetErrorString(err));
+    }
+
     CHECK(cudaMemcpyAsync(magnitude, d_magnitude, size, cudaMemcpyDeviceToHost));
     CHECK(cudaMemcpyAsync(direction, d_direction, size, cudaMemcpyDeviceToHost));
 
@@ -115,6 +119,11 @@ void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int wi
 
     hog_gpu<<< grid, block >>>(d_bins, d_magnitude, d_direction, width, height);
     CHECK(cudaDeviceSynchronize());
+
+    cudaError_t err = cudaGetLastError();
+    if(err != cudaSuccess) {
+        printf("\n--> Error: %s\n", cudaGetErrorString(err));
+    }
 
     CHECK(cudaMemcpyAsync(hog->bins, d_bins, nBytes, cudaMemcpyDeviceToHost));
 

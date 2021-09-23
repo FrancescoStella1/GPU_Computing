@@ -32,7 +32,7 @@ void compute_magnitude(unsigned char *gradientX, unsigned char *gradientY, unsig
  * @param size size of the input gradients.
  *
 */
-void compute_direction(unsigned char *gradientX, unsigned char *gradientY, signed char *direction, int size);
+void compute_direction(unsigned char *gradientX, unsigned char *gradientY, unsigned char *direction, int size);
 
 
 /**

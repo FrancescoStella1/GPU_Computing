@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <cuda_runtime.h>
 
 #include "./stb_image/stb_image.h"
@@ -83,7 +84,16 @@ int main (int argc, char **argv) {
     memcpy(h_img, img, size*3);
 
     // Grayscale conversion on CPU/GPU
-    CPU ? convert(h_img, h_img_gray, size) : cuda_convert(h_img, h_img_gray, width, height);
+    if(CPU) {
+        clock_t clk_start = clock();
+        convert(h_img, h_img_gray, size);
+        clock_t clk_end = clock();
+        double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
+        printf("[Grayscale conversion CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+    }
+    else {
+        cuda_convert(h_img, h_img_gray, width, height);
+    }
 
     if(WRITE)
         stbi_write_jpg("images/results/testGrayScale.jpg", width, height, 1, h_img_gray, 100);
@@ -91,7 +101,16 @@ int main (int argc, char **argv) {
     struct Histogram *hist = createHistogram();
 
     // Gamma correction on CPU/GPU
-    CPU ? gamma_correction(hist, h_img_gray, size) : cuda_gamma_correction(h_img_gray, size);
+    if(CPU) {
+        clock_t clk_start = clock();
+        gamma_correction(hist, h_img_gray, size);
+        clock_t clk_end = clock();
+        double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
+        printf("[Gamma correction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+    }
+    else {
+        cuda_gamma_correction(h_img_gray, size);
+    }
 
     if(WRITE)
         stbi_write_jpg("images/results/testGammaCorrection.jpg", width, height, 1, h_img_gray, 100);
@@ -100,8 +119,12 @@ int main (int argc, char **argv) {
     unsigned char* gradientY = (unsigned char*) malloc (size);
 
     if(CPU) {
+        clock_t clk_start = clock();
         convolutionHorizontal(h_img_gray, gradientX, height, width);
         convolutionVertical(h_img_gray, gradientY, height, width);
+        clock_t clk_end = clock();
+        double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
+        printf("[Gradients computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
     }
     else {
         cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height);
@@ -116,11 +139,15 @@ int main (int argc, char **argv) {
     unsigned char *direction = (unsigned char *)malloc(size);
 
     if(CPU) {
+        clock_t clk_start = clock();
         compute_magnitude(gradientX, gradientY, magnitude, width*height);
         compute_direction(gradientX, gradientY, direction, width*height);
+        clock_t clk_end = clock();
+        double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
+        printf("[Magnitude & Direction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
     }
     else {
-        // Insert cuda functions
+        cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, size);
     }
 
     if(WRITE) {
@@ -128,9 +155,15 @@ int main (int argc, char **argv) {
         stbi_write_jpg("images/results/direction.jpg", width, height, 1, direction, 100);
     }
 
-
     if(CPU) {
+        clock_t clk_start = clock();
         compute_hog(magnitude, direction, width, height);
+        clock_t clk_end = clock();
+        double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
+        printf("[HOG computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+    }
+    else {
+        cuda_compute_hog(magnitude, direction, width, height);
     }
 
     printf("\n\n [DONE] \n\n");

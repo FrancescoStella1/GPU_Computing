@@ -17,14 +17,6 @@ __global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_
 
     __shared__ unsigned char img_shared[TILE_WIDTH][TILE_WIDTH];
 
-    // TEMPORARY CHECK
-    if(threadIdx.x==0 && threadIdx.y==0 && blockIdx.x==0 && blockIdx.y==0) {
-        printf("\nSobelX kernel:\n");
-        for(int i=0; i<9; i++)
-          printf("%d\n", sobelX[i]);
-    }
-    
-
     // Top side of the block
     if ((threadIdx.y < radius) ) {
 
@@ -128,8 +120,9 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     CHECK(cudaDeviceSynchronize());
     
     cudaError_t err = cudaGetLastError();
-    if(err != cudaSuccess)
-        printf("%s\n", cudaGetErrorString(err));
+    if(err != cudaSuccess) {
+        printf("\n--> Error: %s\n", cudaGetErrorString(err));
+    }
 
     // D2H transfer
     CHECK(cudaMemcpyAsync(img_grad_h, d_grad_h, size, cudaMemcpyDeviceToHost));

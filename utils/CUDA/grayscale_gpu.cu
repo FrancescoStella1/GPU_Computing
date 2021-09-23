@@ -39,12 +39,15 @@ void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, in
     CHECK(cudaMemcpy(d_img_gray, h_img_gray, size, cudaMemcpyHostToDevice));
 
     // Kernel launch
-    dim3 block;
-    dim3 grid;
-    block.x = BLOCKDIM;
-    grid.x = ((size+block.x-1)/block.x);
+    dim3 block(BLOCKDIM);
+    dim3 grid((size+block.x-1)/block.x);
     grayscale_gpu<<< grid, block >>>(d_img, d_img_gray, size);
     CHECK(cudaDeviceSynchronize());
+
+    cudaError_t err = cudaGetLastError();
+    if(err != cudaSuccess) {
+        printf("\n--> Error: %s\n", cudaGetErrorString(err));
+    }
 
     // Data transfer H2D
     CHECK(cudaMemcpy(h_img_gray, d_img_gray, size, cudaMemcpyDeviceToHost));

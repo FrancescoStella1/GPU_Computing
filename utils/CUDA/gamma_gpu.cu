@@ -45,10 +45,8 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
     CHECK(cudaMemcpy(d_num, hist->num, nBytes, cudaMemcpyHostToDevice));
     CHECK(cudaMemcpy(d_img_gray, h_img_gray, size, cudaMemcpyHostToDevice));
 
-    dim3 block;
-    dim3 grid;
-    block.x = BLOCKDIM;
-    grid.x = ((size + block.x - 1)/block.x);
+    dim3 block(BLOCKDIM);
+    dim3 grid((size + block.x - 1)/block.x);
 
     // Run first kernel
     double start = seconds();
@@ -57,6 +55,11 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
     double stop = seconds();
     printf("GPU Elapsed time: %f sec\n\n", stop-start);
     
+    cudaError_t err = cudaGetLastError();
+    if(err != cudaSuccess) {
+        printf("\n--> Error: %s\n", cudaGetErrorString(err));
+    }
+
     // Data transfer D2H
     CHECK(cudaMemcpy(hist->num, d_num, nBytes, cudaMemcpyDeviceToHost));
     CHECK(cudaMemcpy(h_img_gray, d_img_gray, size, cudaMemcpyDeviceToHost));
@@ -89,6 +92,11 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
     CHECK(cudaDeviceSynchronize());
     stop = seconds();
     printf("GPU Elapsed time: %f sec\n\n", stop-start);
+
+    err = cudaGetLastError();
+    if(err != cudaSuccess) {
+        printf("\n--> Error: %s\n", cudaGetErrorString(err));
+    }
 
     // Data transfer D2H
     CHECK(cudaMemcpy(h_img_gray, d_img_gray, size, cudaMemcpyDeviceToHost));

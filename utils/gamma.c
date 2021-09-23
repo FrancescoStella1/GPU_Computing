@@ -39,13 +39,15 @@ double compute_gamma(unsigned int *num, long *cnum, const size_t size, unsigned 
         }
     }
 
+    /*
     printf("Lower bin: %u\nMedian bin: %u\nUpper bin: %u\n", min, median, max);
     if(max_intensity != NULL)
         printf("Max_intensity: %u\n", *max_intensity);
+    */
 
     // Compute gamma value
     double g = log2((double)(median-min)/(max-median));
-    printf("gamma value: %f\n", g);
+    //printf("gamma value: %f\n", g);
 
     // Normalize g
     if(g<0.8)
@@ -77,10 +79,12 @@ void gamma_correction(struct Histogram *hist, unsigned char *img_gray, const siz
 
     double g = compute_gamma(hist->num, hist->cnum, size);
     double factor = *max_intensity/pow(*max_intensity, 1/g);
+    /*
     printf("Normalized gamma value: %f\n", g);
     printf("Factor: %.4f\n", factor);
     printf("Max intensity: %u\n", *max_intensity);
-
+    */
+   
     // Apply gamma correction
     for(unsigned char *p=img_gray; p<(img_gray + size); p++) {
         *p = (unsigned char)(factor*(pow(*p, 1/g)));
