@@ -54,10 +54,10 @@ void compute_hog(unsigned char *magnitude, unsigned char *direction, int width, 
  * @param gradientY pointer to the vertical gradient array.
  * @param magnitude pointer to the magnitude of the gradients.
  * @param direction pointer to the direction of the gradients.
- * @param size size of the input gradients.
+ * @param dim size of the input gradients.
  * 
 */
-void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int size);
+void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int dim);
 
 
 /**

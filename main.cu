@@ -17,6 +17,7 @@
 #include "./utils/CUDA/gradient_gpu.cu"
 #include "./utils/hog_utils.c"
 #include "./utils/CUDA/hog_utils_gpu.cu"
+#include "./utils/CUDA/video_utils.cu"
 
 
 int CUDA_CHECK = 0;     // Temporary
@@ -61,10 +62,23 @@ int main (int argc, char **argv) {
     int width, height, channels;
     unsigned char *img;
 
-    if (argc > 1)
-        img = stbi_load(argv[1], &width, &height, &channels, 0);
-    else
-        img = stbi_load("images/calciatore.jpg", &width, &height, &channels, 0);
+    if (argc > 2) {
+        if(argv[1]=="-i")
+            img = stbi_load(argv[2], &width, &height, &channels, 0);
+        else if(argv[1]=="-v") {
+            process_video(argv[2]);
+            exit(1);
+        }
+        else {
+            printf("\n\nPlease specify two arguments:\n\n- the type of the input file (-i for image and -v for video)\n- the file path\n");
+            exit(-1);
+        }
+    }
+    else {
+        printf("\n\nPlease specify two arguments:\n\n- the type of the input file (-i for image and -v for video)\n- the file path\n");
+        exit(-1);
+        //img = stbi_load("images/calciatore.jpg", &width, &height, &channels, 0);
+    }
     if (img == NULL){
         printf("Error loading the image... \n");
         exit(EXIT_FAILURE);
@@ -147,7 +161,7 @@ int main (int argc, char **argv) {
         printf("[Magnitude & Direction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
     }
     else {
-        cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, size);
+        cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width*height);
     }
 
     if(WRITE) {

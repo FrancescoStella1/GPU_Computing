@@ -1,6 +1,6 @@
 #include "../hog_utils.h"
 
-#define BLOCKDIM_HOG   64
+#define BLOCKDIM_HOG   8
 
 __global__ void mag_dir_gpu(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int size) {
     uint i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -43,12 +43,13 @@ __global__ void hog_gpu(float *bins, unsigned char *magnitude, unsigned char *di
 }
 
 
-void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int size) {
+void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int dim) {
 
     unsigned char *d_gradientX;
     unsigned char *d_gradientY;
     unsigned char *d_magnitude;
     unsigned char *d_direction;
+    size_t size = dim;
 
     CHECK(cudaMallocHost((void **)&d_gradientX, size));
     CHECK(cudaMallocHost((void **)&d_gradientY, size));
@@ -70,7 +71,7 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
     dim3 block(BLOCKDIM);
     dim3 grid((size+block.x-1)/block.x);
 
-    mag_dir_gpu<<< grid, block >>>(d_gradientX, d_gradientY, d_magnitude, d_direction, size);
+    mag_dir_gpu<<< grid, block >>>(d_gradientX, d_gradientY, d_magnitude, d_direction, dim);
     CHECK(cudaDeviceSynchronize());
     
     cudaError_t err = cudaGetLastError();
