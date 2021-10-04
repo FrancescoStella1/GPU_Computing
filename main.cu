@@ -17,7 +17,7 @@
 #include "./utils/CUDA/gradient_gpu.cu"
 #include "./utils/hog_utils.c"
 #include "./utils/CUDA/hog_utils_gpu.cu"
-#include "./utils/CUDA/video_utils.cu"
+#include "./utils/video_utils.c"
 
 
 int CUDA_CHECK = 0;     // Temporary
@@ -63,9 +63,9 @@ int main (int argc, char **argv) {
     unsigned char *img;
 
     if (argc > 2) {
-        if(argv[1]=="-i")
+        if(strcmp(argv[1], "-i") == 0)
             img = stbi_load(argv[2], &width, &height, &channels, 0);
-        else if(argv[1]=="-v") {
+        else if(strcmp(argv[1], "-v") == 0) {
             process_video(argv[2]);
             exit(1);
         }
