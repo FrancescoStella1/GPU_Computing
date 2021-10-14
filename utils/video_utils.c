@@ -30,8 +30,9 @@ void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
     
     fprintf(pFile, "P6\n%d %d\n255\n", width, height);
 
-    for(y=0; y<height; y++)
-        fwrite(frame->data[0] + y*frame->linesize[0], 1, width*3, pFile);
+    for(y=0; y<height; y++) {
+        fwrite(frame->data[0] + y*frame->linesize[0], sizeof(uint8_t), width*3, pFile);
+    }
     
     fclose(pFile);
 }
