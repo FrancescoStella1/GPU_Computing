@@ -31,6 +31,7 @@ void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
     fprintf(pFile, "P6\n%d %d\n255\n", width, height);
 
     for(y=0; y<height; y++) {
+        //fwrite(frame->data[0] + y*frame->linesize[0], sizeof(uint8_t), width, pFile);
         fwrite(frame->data[0] + y*frame->linesize[0], sizeof(uint8_t), width*3, pFile);
     }
     
@@ -44,6 +45,7 @@ int process_video(char *filename) {
     AVCodecContext *pCodecCtx = NULL;
     AVCodec *pCodec = NULL;
     AVFrame *frame = NULL;
+    AVFrame *frameRGB = NULL;
     AVPacket pkt;
 
     int videoStream = -1;
@@ -97,19 +99,18 @@ int process_video(char *filename) {
     }
 
     frame = av_frame_alloc();
-    /*
-    if(frame == NULL) {
-        fprintf("Could not allocate frame.\n");
+    frameRGB = av_frame_alloc();
+    if(frameRGB == NULL) {
+        fprintf(stderr, "Could not allocate frame.\n");
         exit(1);
     }
-    */
 
     // Determine required buffer size and allocate buffer
     numBytes = avpicture_get_size(AV_PIX_FMT_RGB24, pCodecCtx->width, pCodecCtx->height);
     buffer = (uint8_t *)av_malloc(numBytes * sizeof(uint8_t));
     
     // Assign appropriate parts of buffer to image planes in frame
-    avpicture_fill((AVPicture *)frame, buffer, AV_PIX_FMT_RGB24, pCodecCtx->width, pCodecCtx->height);
+    avpicture_fill((AVPicture *)frameRGB, buffer, AV_PIX_FMT_RGB24, pCodecCtx->width, pCodecCtx->height);
 
     // Initialize SWS context for scaling
     sws_ctx = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
@@ -121,7 +122,8 @@ int process_video(char *filename) {
             avcodec_decode_video2(pCodecCtx, frame, &frameFinished, &pkt);
             // If we got a frame, save it
             if(frameFinished) {
-                saveFrame(frame, pCodecCtx->width, pCodecCtx->height, i);
+                sws_scale(sws_ctx, frame->data, frame->linesize, 0, pCodecCtx->height, frameRGB->data, frameRGB->linesize);
+                saveFrame(frameRGB, pCodecCtx->width, pCodecCtx->height, i);
                 printf("\nFrame %d saved!", i);
             }
             ++i;
