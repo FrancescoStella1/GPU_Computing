@@ -41,19 +41,26 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
         exit(EXIT_FAILURE);
     }
 
+    
+    dim3 block(BLOCKDIM);
+    dim3 grid((size + block.x - 1)/block.x);
+    cudaEvent_t start, end;
+    CHECK(cudaEventCreate(&start));
+    CHECK(cudaEventCreate(&end));
+    float time;
+
     // Data transfer H2D
     CHECK(cudaMemcpy(d_num, hist->num, nBytes, cudaMemcpyHostToDevice));
     CHECK(cudaMemcpy(d_img_gray, h_img_gray, size, cudaMemcpyHostToDevice));
 
-    dim3 block(BLOCKDIM);
-    dim3 grid((size + block.x - 1)/block.x);
-
-    // Run first kernel
-    double start = seconds();
+    // Run kernel
+    cudaEventRecord(start, 0);
     create_hist_gpu<<< grid, block >>>(d_num, d_img_gray, size);
     CHECK(cudaDeviceSynchronize());
-    double stop = seconds();
-    printf("GPU Elapsed time: %f sec\n\n", stop-start);
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time, start, end);
+    printf("GPU Elapsed time: %f sec\n\n", time/1000);
     
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
@@ -65,8 +72,8 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
     CHECK(cudaMemcpy(h_img_gray, d_img_gray, size, cudaMemcpyDeviceToHost));
 
     // Free memory
-    CHECK(cudaFree(d_img_gray));
     CHECK(cudaFree(d_num));
+
 
     // Compute cumulative histogram and normalized gamma value on CPU
     g = compute_gamma(hist->num, hist->cnum, size, max_intensity);
@@ -75,23 +82,15 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
     printf("Normalized gamma value: %f\n", g);
     printf("Factor: %f\n", factor);
     printf("Max intensity: %u\n", *max_intensity);
-
-    // Reallocate device memory
-    CHECK(cudaMalloc((void **)&d_img_gray, size));
-    if(d_img_gray == NULL) {
-        printf("Unable to allocate memory on GPU.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // Transfer H2D
-    CHECK(cudaMemcpy(d_img_gray, h_img_gray, size, cudaMemcpyHostToDevice));
     
     // Run second kernel
-    start = seconds();
+    cudaEventRecord(start, 0);
     apply_gamma_gpu<<< grid, block >>>(d_img_gray, g, factor, size);
     CHECK(cudaDeviceSynchronize());
-    stop = seconds();
-    printf("GPU Elapsed time: %f sec\n\n", stop-start);
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time, start, end);
+    printf("GPU Elapsed time: %f sec\n\n", time/1000);
 
     err = cudaGetLastError();
     if(err != cudaSuccess) {
@@ -103,5 +102,7 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
 
     // Free memory
     CHECK(cudaFree(d_img_gray));
+    CHECK(cudaEventDestroy(start));
+    CHECK(cudaEventDestroy(end));
     
 }

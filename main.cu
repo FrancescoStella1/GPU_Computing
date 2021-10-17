@@ -1,6 +1,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_STATIC
+#define CUDA_API_PER_THREAD_DEFAULT_STREAM
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,8 +22,9 @@
 
 
 int CUDA_CHECK = 0;     // Temporary
-int WRITE = 0;          // Temporary
+int WRITE = 1;          // Temporary
 int CPU = 1;            // Temporary
+int NUM_FRAMES = 5;
 
 
 int main (int argc, char **argv) {
@@ -66,7 +68,7 @@ int main (int argc, char **argv) {
         if(strcmp(argv[1], "-i") == 0)
             img = stbi_load(argv[2], &width, &height, &channels, 0);
         else if(strcmp(argv[1], "-v") == 0) {
-            process_video(argv[2]);
+            process_video(argv[2], NUM_FRAMES);
             exit(1);
         }
         else {
@@ -77,7 +79,6 @@ int main (int argc, char **argv) {
     else {
         printf("\n\nPlease specify two arguments:\n\n- the type of the input file (-i for image and -v for video)\n- the file path\n");
         exit(-1);
-        //img = stbi_load("images/calciatore.jpg", &width, &height, &channels, 0);
     }
     if (img == NULL){
         printf("Error loading the image... \n");
@@ -132,6 +133,7 @@ int main (int argc, char **argv) {
     unsigned char* gradientX = (unsigned char*) malloc (size);
     unsigned char* gradientY = (unsigned char*) malloc (size);
 
+    // Gradients computation on CPU/GPU
     if(CPU) {
         clock_t clk_start = clock();
         convolutionHorizontal(h_img_gray, gradientX, height, width);
@@ -152,6 +154,7 @@ int main (int argc, char **argv) {
     unsigned char *magnitude = (unsigned char *)malloc(size);
     unsigned char *direction = (unsigned char *)malloc(size);
 
+    // Magnitude and Direction computation on CPU/GPU
     if(CPU) {
         clock_t clk_start = clock();
         compute_magnitude(gradientX, gradientY, magnitude, width*height);
@@ -169,6 +172,7 @@ int main (int argc, char **argv) {
         stbi_write_jpg("images/results/direction.jpg", width, height, 1, direction, 100);
     }
 
+    // HOG computation on CPU/GPU
     if(CPU) {
         clock_t clk_start = clock();
         compute_hog(magnitude, direction, width, height);

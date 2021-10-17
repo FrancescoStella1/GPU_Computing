@@ -1,6 +1,5 @@
 #include "../hog_utils.h"
 
-#define BLOCKDIM_HOG   8
 
 __global__ void mag_dir_gpu(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int size) {
     uint i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -68,12 +67,22 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
 
     CHECK(cudaDeviceSynchronize());
 
-    dim3 block(BLOCKDIM);
+    dim3 block(HOG_BLOCK_SIDE);
     dim3 grid((size+block.x-1)/block.x);
 
+    cudaEvent_t start, end;
+    CHECK(cudaEventCreate(&start));
+    CHECK(cudaEventCreate(&end));
+    float time;
+    
+    cudaEventRecord(start, 0);
     mag_dir_gpu<<< grid, block >>>(d_gradientX, d_gradientY, d_magnitude, d_direction, dim);
     CHECK(cudaDeviceSynchronize());
-    
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time, start, end);
+    printf("GPU Elapsed time: %f sec\n\n", time/1000);
+
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
         printf("\n--> Error: %s\n", cudaGetErrorString(err));
@@ -88,6 +97,8 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
     CHECK(cudaFreeHost(d_gradientY));
     CHECK(cudaFreeHost(d_magnitude));
     CHECK(cudaFreeHost(d_direction));
+    CHECK(cudaEventDestroy(start));
+    CHECK(cudaEventDestroy(end));
 }
 
 
@@ -115,11 +126,22 @@ void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int wi
     CHECK(cudaMemcpyAsync(d_bins, hog->bins, nBytes, cudaMemcpyHostToDevice));
     CHECK(cudaDeviceSynchronize());
 
-    dim3 block(BLOCKDIM_HOG, BLOCKDIM_HOG);
+    dim3 block(HOG_BLOCK_SIDE, HOG_BLOCK_SIDE);
     dim3 grid((width + block.x - 1)/block.x, (height + block.y - 1)/block.y);
 
+
+    cudaEvent_t start, end;
+    CHECK(cudaEventCreate(&start));
+    CHECK(cudaEventCreate(&end));
+    float time;
+    
+    cudaEventRecord(start, 0);
     hog_gpu<<< grid, block >>>(d_bins, d_magnitude, d_direction, width, height);
     CHECK(cudaDeviceSynchronize());
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time, start, end);
+    printf("GPU Elapsed time: %f sec\n\n", time/1000);
 
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
@@ -133,4 +155,6 @@ void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int wi
     CHECK(cudaFreeHost(d_magnitude));
     CHECK(cudaFreeHost(d_direction));
     CHECK(cudaFreeHost(d_bins));
+    CHECK(cudaEventDestroy(start));
+    CHECK(cudaEventDestroy(end));
 }

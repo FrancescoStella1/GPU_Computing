@@ -48,9 +48,4 @@ void compute_hog(unsigned char *magnitude, unsigned char *direction, int width, 
     row += HOG_BLOCK_SIDE;
     col = 0;
   }
-  /*
-  for(int i=0; i<9; i++) {
-    printf("Bin %d \t value: %.2f\n", i+1, hog->bins[i]);
-  }
-  */
 }

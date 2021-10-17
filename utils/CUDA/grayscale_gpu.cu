@@ -41,8 +41,18 @@ void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, in
     // Kernel launch
     dim3 block(BLOCKDIM);
     dim3 grid((size+block.x-1)/block.x);
+
+    cudaEvent_t start, end;
+    CHECK(cudaEventCreate(&start));
+    CHECK(cudaEventCreate(&end));
+    float time;
+    cudaEventRecord(start, 0);
     grayscale_gpu<<< grid, block >>>(d_img, d_img_gray, size);
     CHECK(cudaDeviceSynchronize());
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time, start, end);
+    printf("GPU Elapsed time: %f sec\n\n", time/1000);
 
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
@@ -55,4 +65,6 @@ void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, in
     // Free memory
     CHECK(cudaFree(d_img));
     CHECK(cudaFree(d_img_gray));
+    CHECK(cudaEventDestroy(start));
+    CHECK(cudaEventDestroy(end));
 }

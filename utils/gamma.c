@@ -39,12 +39,6 @@ double compute_gamma(unsigned int *num, long *cnum, const size_t size, unsigned 
         }
     }
 
-    /*
-    printf("Lower bin: %u\nMedian bin: %u\nUpper bin: %u\n", min, median, max);
-    if(max_intensity != NULL)
-        printf("Max_intensity: %u\n", *max_intensity);
-    */
-
     // Compute gamma value
     double g = log2((double)(median-min)/(max-median));
     //printf("gamma value: %f\n", g);

@@ -1,21 +1,7 @@
 /*
  This file is based on examples and guidelines retrieved from https://ffmpeg.org/doxygen/2.0 and http://dranger.com/ffmpeg/tutorial01.html
 */
-
-extern "C" {
-#include <libavutil/imgutils.h>
-#include <libavutil/samplefmt.h>
-#include <libavutil/timestamp.h>
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-#include <libswscale/swscale.h>
-}
-
-// Compatibility with new API
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55,28,1)
-#define av_frame_alloc avcodec_alloc_frame
-#define av_frame_free avcodec_free_frame
-#endif
+#include "video_utils.h"
 
 
 void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
@@ -31,7 +17,6 @@ void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
     fprintf(pFile, "P6\n%d %d\n255\n", width, height);
 
     for(y=0; y<height; y++) {
-        //fwrite(frame->data[0] + y*frame->linesize[0], sizeof(uint8_t), width, pFile);
         fwrite(frame->data[0] + y*frame->linesize[0], sizeof(uint8_t), width*3, pFile);
     }
     
@@ -39,7 +24,7 @@ void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
 }
 
 
-int process_video(char *filename) {  
+void process_video(char *filename, int num_frames) {  
     AVFormatContext *pFormatContext = avformat_alloc_context();
     AVCodecContext *pCodecCtxOrig = NULL;
     AVCodecContext *pCodecCtx = NULL;
@@ -116,7 +101,7 @@ int process_video(char *filename) {
     sws_ctx = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
     
     int i = 0;
-    while(av_read_frame(pFormatContext, &pkt) >= 0 && i<10) {
+    while(av_read_frame(pFormatContext, &pkt) >= 0 && i<num_frames) {
         // Check if packet comes from video stream and decode frame
         if(pkt.stream_index == videoStream) {
             avcodec_decode_video2(pCodecCtx, frame, &frameFinished, &pkt);
@@ -140,6 +125,4 @@ int process_video(char *filename) {
 
     // Close video file
     avformat_close_input(&pFormatContext);
-
-    return 0;
 }

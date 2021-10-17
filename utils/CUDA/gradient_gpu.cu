@@ -63,7 +63,6 @@ __global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_
         }
     }
       
-
     // center of the block
 	img_shared[radius + threadIdx.y][radius + threadIdx.x] = input_image[y * width + x];
 	
@@ -116,8 +115,17 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     dim3 grid((width + BLOCKDIM - 1)/BLOCKDIM, (height + BLOCKDIM - 1)/BLOCKDIM);
     
     // Kernel launch
+    cudaEvent_t start, end;
+    CHECK(cudaEventCreate(&start));
+    CHECK(cudaEventCreate(&end));
+    float time;
+    cudaEventRecord(start, 0);
     convolutions_gpu<<<grid, block>>>(d_img_grad, d_grad_h, d_grad_v, width, height);
     CHECK(cudaDeviceSynchronize());
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time, start, end);
+    printf("GPU Elapsed time: %f sec\n\n", time/1000);
     
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
@@ -134,4 +142,6 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     CHECK(cudaFreeHost(d_img_grad));
     CHECK(cudaFreeHost(d_grad_h));
     CHECK(cudaFreeHost(d_grad_v));
+    CHECK(cudaEventDestroy(start));
+    CHECK(cudaEventDestroy(end));
 }
