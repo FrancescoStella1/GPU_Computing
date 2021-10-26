@@ -106,7 +106,7 @@ void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int wi
     unsigned char *d_magnitude, *d_direction;
     float *d_bins;
     size_t size = width*height;
-    int num_blocks = (width*height)/HOG_BLOCK_SIDE + 1;
+    int num_blocks = (size + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
     size_t nBytes = NUM_BINS*num_blocks*sizeof(float);
 
     struct Hog *hog = (struct Hog *)malloc(sizeof(struct Hog));

@@ -2,6 +2,8 @@
  This file is based on examples and guidelines retrieved from https://ffmpeg.org/doxygen/2.0 and http://dranger.com/ffmpeg/tutorial01.html
 */
 #include "video_utils.h"
+#include <dirent.h>
+#include <stdio.h>
 
 
 void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
@@ -9,7 +11,7 @@ void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
     char szFilename[128];
     int y;
 
-    sprintf(szFilename, "../../test_frames/frame%d.ppm", iFrame);
+    sprintf(szFilename, "images/results/frames/frame%d.ppm", iFrame);
     pFile = fopen(szFilename, "wb");
     if(pFile == NULL)
         return;
@@ -125,4 +127,123 @@ void process_video(char *filename, int num_frames) {
 
     // Close video file
     avformat_close_input(&pFormatContext);
+}
+
+
+void compute_hog(char *path) {
+    DIR *d;
+    struct dirent *dir;
+    d = opendir(path);
+    unsigned char *img;
+    char *filename[40];
+    int width, height, channels;
+    int frame_num=0;
+    if (d) {
+        while((dir = readdir(d) != NULL)) {
+            img = stbi_load(dir.d_name, &width, &height, &channels, 0);
+            size_t size = width * height * sizeof(unsigned char);
+
+            // Host memory allocation and copy of the loaded image
+            unsigned char *h_img = (unsigned char *)malloc(size*channels);     // 3 channels
+            unsigned char *h_img_gray = (unsigned char *)malloc(size);
+            memcpy(h_img, img, size*3);
+
+            // Grayscale conversion on CPU/GPU
+            if(CPU) {
+                clock_t clk_start = clock();
+                convert(h_img, h_img_gray, size);
+                clock_t clk_end = clock();
+                double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
+                printf("[Grayscale conversion CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+            }
+            else {
+                cuda_convert(h_img, h_img_gray, width, height);
+            }
+
+            if(WRITE) {
+                sprintf(filename, "image/results/grayscale_frame%d.jpg", frame_num);
+                stbi_write_jpg(filename, width, height, 1, h_img_gray, 100);
+            }
+
+             struct Histogram *hist = createHistogram();
+
+            // Gamma correction on CPU/GPU
+            if(CPU) {
+                clock_t clk_start = clock();
+                gamma_correction(hist, h_img_gray, size);
+                clock_t clk_end = clock();
+                double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
+                printf("[Gamma correction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+            }
+            else {
+                cuda_gamma_correction(h_img_gray, size);
+            }
+
+            if(WRITE) {
+                sprintf(filename, "images/results/gamma_frame%d.jpg", frame_num);
+                stbi_write_jpg(filename, width, height, 1, h_img_gray, 100);
+            }
+
+            unsigned char* gradientX = (unsigned char*) malloc (size);
+            unsigned char* gradientY = (unsigned char*) malloc (size);
+
+            // Gradients computation on CPU/GPU
+            if(CPU) {
+                clock_t clk_start = clock();
+                convolutionHorizontal(h_img_gray, gradientX, height, width);
+                convolutionVertical(h_img_gray, gradientY, height, width);
+                clock_t clk_end = clock();
+                double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
+                printf("[Gradients computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+            }
+            else {
+                cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height);
+            }
+
+            if(WRITE) {
+                sprintf(filename, "images/results/gradientX_frame%d.jpg", frame_num);
+                stbi_write_jpg(filename, width, height, 1, gradientX, 100);
+                sprintf(filename, "images/results/gradientY_frame%d.jpg", frame_num);
+                stbi_write_jpg("images/results/gradientY.jpg", width, height, 1, gradientY, 100);
+            }
+
+            unsigned char *magnitude = (unsigned char *)malloc(size);
+            unsigned char *direction = (unsigned char *)malloc(size);
+
+            // Magnitude and Direction computation on CPU/GPU
+            if(CPU) {
+                clock_t clk_start = clock();
+                compute_magnitude(gradientX, gradientY, magnitude, width*height);
+                compute_direction(gradientX, gradientY, direction, width*height);
+                clock_t clk_end = clock();
+                double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
+                printf("[Magnitude & Direction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+            }
+            else {
+                cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width*height);
+            }
+
+            if(WRITE) {
+                sprintf(filename, "images/results/magnitude_frame%d.jpg", frame_num);
+                stbi_write_jpg("images/results/magnitude.jpg", width, height, 1, magnitude, 100);
+                sprintf(filename, "images/results/direction_frame%d.jpg", frame_num);
+                stbi_write_jpg("images/results/direction.jpg", width, height, 1, direction, 100);
+            }
+
+            // HOG computation on CPU/GPU
+            if(CPU) {
+                clock_t clk_start = clock();
+                compute_hog(magnitude, direction, width, height);
+                clock_t clk_end = clock();
+                double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
+                printf("[HOG computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+            }
+            else {
+                cuda_compute_hog(magnitude, direction, width, height);
+            }
+
+            printf("\n\n [DONE] \n\n");
+        }
+        closedir();
+    }
 }
