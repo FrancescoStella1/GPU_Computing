@@ -24,7 +24,6 @@
 int CUDA_CHECK = 0;     // Temporary
 int WRITE = 1;          // Temporary
 int CPU = 1;            // Temporary
-int NUM_FRAMES = 5;
 
 
 int main (int argc, char **argv) {
@@ -68,7 +67,9 @@ int main (int argc, char **argv) {
         if(strcmp(argv[1], "-i") == 0)
             img = stbi_load(argv[2], &width, &height, &channels, 0);
         else if(strcmp(argv[1], "-v") == 0) {
-            process_video(argv[2], NUM_FRAMES);
+            extract_frames(argv[2]);
+            printf("Frames extracted\n");
+            process_frames("./images/results/frames", CPU, WRITE);
             exit(1);
         }
         else {

@@ -3,7 +3,10 @@
 */
 #include "video_utils.h"
 #include <dirent.h>
-#include <stdio.h>
+//#include <stdio.h>
+#include <sys/stat.h>
+
+#define MAX_FRAMES   10
 
 
 void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
@@ -11,7 +14,14 @@ void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
     char szFilename[128];
     int y;
 
-    sprintf(szFilename, "images/results/frames/frame%d.ppm", iFrame);
+    DIR *dir = opendir("./images/results/frames");
+    if(ENOENT == errno) {
+        printf("\nCreating output directory..\n");
+        mkdir("./images/results/frames", 0700);
+        closedir(dir);
+    }
+
+    sprintf(szFilename, "./images/results/frames/frame%d.ppm", iFrame);
     pFile = fopen(szFilename, "wb");
     if(pFile == NULL)
         return;
@@ -26,7 +36,7 @@ void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
 }
 
 
-void process_video(char *filename, int num_frames) {  
+void extract_frames(char *filename) {  
     AVFormatContext *pFormatContext = avformat_alloc_context();
     AVCodecContext *pCodecCtxOrig = NULL;
     AVCodecContext *pCodecCtx = NULL;
@@ -53,7 +63,7 @@ void process_video(char *filename, int num_frames) {
         exit(1);
     }
 
-    av_dump_format(pFormatContext, 0, filename, 0);
+    //av_dump_format(pFormatContext, 0, filename, 0);
 
     for(int i=0; i < (pFormatContext->nb_streams); i++) {
         if(pFormatContext->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
@@ -103,7 +113,7 @@ void process_video(char *filename, int num_frames) {
     sws_ctx = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
     
     int i = 0;
-    while(av_read_frame(pFormatContext, &pkt) >= 0 && i<num_frames) {
+    while(av_read_frame(pFormatContext, &pkt) >= 0 && i<MAX_FRAMES) {
         // Check if packet comes from video stream and decode frame
         if(pkt.stream_index == videoStream) {
             avcodec_decode_video2(pCodecCtx, frame, &frameFinished, &pkt);
@@ -111,7 +121,6 @@ void process_video(char *filename, int num_frames) {
             if(frameFinished) {
                 sws_scale(sws_ctx, frame->data, frame->linesize, 0, pCodecCtx->height, frameRGB->data, frameRGB->linesize);
                 saveFrame(frameRGB, pCodecCtx->width, pCodecCtx->height, i);
-                printf("\nFrame %d saved!", i);
             }
             ++i;
         }
@@ -130,17 +139,35 @@ void process_video(char *filename, int num_frames) {
 }
 
 
-void compute_hog(char *path) {
+void process_frames(char *path, int cpu, int write) {
     DIR *d;
     struct dirent *dir;
-    d = opendir(path);
+    char *out_dir = "./images/results";
+    char *out = (char *)calloc(strlen(out_dir)+24, sizeof(char));
+    char *frames_dir = "./images/results/frames";
+    char *frame = (char *)calloc(strlen(frames_dir)+14, sizeof(char));
     unsigned char *img;
-    char *filename[40];
     int width, height, channels;
-    int frame_num=0;
+    int frame_num = 0;
+
+    d = opendir(path);
     if (d) {
-        while((dir = readdir(d) != NULL)) {
-            img = stbi_load(dir.d_name, &width, &height, &channels, 0);
+        while((dir = readdir(d)) != NULL) {
+            const char *end = strchr(dir->d_name, '.');
+            if((end == NULL) || strcmp(end+1, "ppm")!=0)
+                continue;
+            
+            char *begin = strchr(dir->d_name, 'e') + 1;
+            end = strchr(begin, '.');
+            if((begin == NULL) || (end == NULL))
+                continue;
+
+            begin[(int)(end - begin)] = '\0';
+            frame_num = atoi(begin);
+            
+            sprintf(frame, "%s/%s.ppm", frames_dir, dir->d_name);
+            printf("Frame path: %s\n", frame);
+            img = stbi_load(frame, &width, &height, &channels, 0);
             size_t size = width * height * sizeof(unsigned char);
 
             // Host memory allocation and copy of the loaded image
@@ -149,7 +176,7 @@ void compute_hog(char *path) {
             memcpy(h_img, img, size*3);
 
             // Grayscale conversion on CPU/GPU
-            if(CPU) {
+            if(cpu) {
                 clock_t clk_start = clock();
                 convert(h_img, h_img_gray, size);
                 clock_t clk_end = clock();
@@ -160,15 +187,15 @@ void compute_hog(char *path) {
                 cuda_convert(h_img, h_img_gray, width, height);
             }
 
-            if(WRITE) {
-                sprintf(filename, "image/results/grayscale_frame%d.jpg", frame_num);
-                stbi_write_jpg(filename, width, height, 1, h_img_gray, 100);
+            if(write) {
+                sprintf(out, "%s/%s%d.jpg", out_dir, "grayscale_frame", frame_num);
+                stbi_write_jpg(out, width, height, 1, h_img_gray, 100);
             }
 
              struct Histogram *hist = createHistogram();
 
             // Gamma correction on CPU/GPU
-            if(CPU) {
+            if(cpu) {
                 clock_t clk_start = clock();
                 gamma_correction(hist, h_img_gray, size);
                 clock_t clk_end = clock();
@@ -179,16 +206,16 @@ void compute_hog(char *path) {
                 cuda_gamma_correction(h_img_gray, size);
             }
 
-            if(WRITE) {
-                sprintf(filename, "images/results/gamma_frame%d.jpg", frame_num);
-                stbi_write_jpg(filename, width, height, 1, h_img_gray, 100);
+            if(write) {
+                sprintf(out, "%s/%s%d.jpg", out_dir, "gamma_frame", frame_num);
+                stbi_write_jpg(out, width, height, 1, h_img_gray, 100);
             }
 
             unsigned char* gradientX = (unsigned char*) malloc (size);
             unsigned char* gradientY = (unsigned char*) malloc (size);
 
             // Gradients computation on CPU/GPU
-            if(CPU) {
+            if(cpu) {
                 clock_t clk_start = clock();
                 convolutionHorizontal(h_img_gray, gradientX, height, width);
                 convolutionVertical(h_img_gray, gradientY, height, width);
@@ -200,18 +227,18 @@ void compute_hog(char *path) {
                 cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height);
             }
 
-            if(WRITE) {
-                sprintf(filename, "images/results/gradientX_frame%d.jpg", frame_num);
-                stbi_write_jpg(filename, width, height, 1, gradientX, 100);
-                sprintf(filename, "images/results/gradientY_frame%d.jpg", frame_num);
-                stbi_write_jpg("images/results/gradientY.jpg", width, height, 1, gradientY, 100);
+            if(write) {
+                sprintf(out, "%s/%s%d.jpg", out_dir, "gradientX_frame", frame_num);
+                stbi_write_jpg(out, width, height, 1, gradientX, 100);
+                sprintf(out, "%s/%s%d.jpg", out_dir, "gradientY_frame", frame_num);
+                stbi_write_jpg(out, width, height, 1, gradientY, 100);
             }
 
             unsigned char *magnitude = (unsigned char *)malloc(size);
             unsigned char *direction = (unsigned char *)malloc(size);
 
             // Magnitude and Direction computation on CPU/GPU
-            if(CPU) {
+            if(cpu) {
                 clock_t clk_start = clock();
                 compute_magnitude(gradientX, gradientY, magnitude, width*height);
                 compute_direction(gradientX, gradientY, direction, width*height);
@@ -223,15 +250,15 @@ void compute_hog(char *path) {
                 cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width*height);
             }
 
-            if(WRITE) {
-                sprintf(filename, "images/results/magnitude_frame%d.jpg", frame_num);
-                stbi_write_jpg("images/results/magnitude.jpg", width, height, 1, magnitude, 100);
-                sprintf(filename, "images/results/direction_frame%d.jpg", frame_num);
-                stbi_write_jpg("images/results/direction.jpg", width, height, 1, direction, 100);
+            if(write) {
+                sprintf(out, "%s/%s%d.jpg", out_dir, "magnitude_frame", frame_num);
+                stbi_write_jpg(out, width, height, 1, magnitude, 100);
+                sprintf(out, "%s/%s%d.jpg", out_dir, "direction_frame", frame_num);
+                stbi_write_jpg(out, width, height, 1, direction, 100);
             }
 
             // HOG computation on CPU/GPU
-            if(CPU) {
+            if(cpu) {
                 clock_t clk_start = clock();
                 compute_hog(magnitude, direction, width, height);
                 clock_t clk_end = clock();
@@ -241,9 +268,9 @@ void compute_hog(char *path) {
             else {
                 cuda_compute_hog(magnitude, direction, width, height);
             }
-
-            printf("\n\n [DONE] \n\n");
+            frame_num++;
         }
-        closedir();
+        closedir(d);
     }
+    printf("\n\n[ DONE ]\n\n");
 }

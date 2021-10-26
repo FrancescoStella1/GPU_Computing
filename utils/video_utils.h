@@ -29,4 +29,7 @@ void save_frame(AVFrame *frame, int width, int height, int iFrame);
  * @param filename path to the video file.
  * @param num_frames maximum number of frames to extract.
 */
-void process_video(char *filename, int num_frames);
+void extract_frames(char *filename, int num_frames);
+
+
+void process_frames(char *filepath, int cpu, int write);
