@@ -25,18 +25,21 @@ __global__ void hog_gpu(float *bins, unsigned char *magnitude, unsigned char *di
     if(i >= width || j >= height)
         return;
 
-    int lbin = direction[i*width + j]/DELTA_THETA;
+    int lbin = direction[j*width + i]/DELTA_THETA;
     int ubin = lbin + 1;
     if(ubin>=NUM_BINS)
       ubin = 0;
 
     int cbin = (lbin + 0.5);
 
-    float l_value = magnitude[i*width + j] * ((direction[i*width + j] - DELTA_THETA/2)/DELTA_THETA);  // value of the j-th bin
-    float u_value = magnitude[i*width + j] * ((direction[i*width + j] - cbin)/DELTA_THETA);
+    unsigned char mag = magnitude[j*width + i];
+    unsigned char dir = direction[j*width + i];
+    float l_value =  mag * ((dir - (DELTA_THETA/2))/DELTA_THETA);
+    float u_value = mag * ((dir - cbin)/DELTA_THETA);
 
     int blocks_per_row = (width + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
     int block_idx = blockIdx.y * blocks_per_row + blockIdx.x;
+
     atomicAdd(&bins[block_idx*NUM_BINS + lbin], l_value);
     atomicAdd(&bins[block_idx*NUM_BINS + ubin], u_value);
 }

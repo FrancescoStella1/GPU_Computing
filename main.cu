@@ -22,7 +22,7 @@
 
 
 int CUDA_CHECK = 0;     // Temporary
-int WRITE = 1;          // Temporary
+int WRITE = 0;          // Temporary
 int CPU = 1;            // Temporary
 
 
