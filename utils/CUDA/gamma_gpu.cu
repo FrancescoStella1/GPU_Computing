@@ -69,7 +69,7 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
 
     // Data transfer D2H
     CHECK(cudaMemcpy(hist->num, d_num, nBytes, cudaMemcpyDeviceToHost));
-    CHECK(cudaMemcpy(h_img_gray, d_img_gray, size, cudaMemcpyDeviceToHost));
+    //CHECK(cudaMemcpy(h_img_gray, d_img_gray, size, cudaMemcpyDeviceToHost));
 
     // Free memory
     CHECK(cudaFree(d_num));
