@@ -1,6 +1,6 @@
 #pragma once
-#include <time.h>
-#include <stdio.h>
+#include "timing.h"
+
 
 void write_to_file(char *filename, char *operation, double elapsed, int device, int final) {
     FILE *fp = fopen(filename, "a");
@@ -14,7 +14,7 @@ void write_to_file(char *filename, char *operation, double elapsed, int device, 
         fprintf(stderr, "Unable to correctly open the file %s\n", filename);
         exit(-1);
     }
-    printf("%ld\n", ftell(fp));
+
     fprintf(fp, operation);
     fprintf(fp, "\n\t");
     char *elapsed_str = (char *)malloc(6*sizeof(char));
