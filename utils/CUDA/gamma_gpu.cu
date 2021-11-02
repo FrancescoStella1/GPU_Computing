@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "../gamma.h"
 #include "../common.h"
+#include "../timing.c"
 
 #define BLOCKDIM   32
 
@@ -9,8 +10,19 @@ __global__ void create_hist_gpu(unsigned int *num, unsigned char *img_gray, cons
     uint i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i>=size)
         return;
+
+    unsigned char intensity = img_gray[i];
+    unsigned char max_intensity = 0;
+
+    for(unsigned char lane=0; lane<32; lane++) {
+        unsigned char tmp = __shfl_sync(0xFFFFFFFF, intensity, i);
+        if(tmp>intensity)
+            max_intensity = tmp;
+    }
+    if(i==0)
+        printf("Maximum intensity: %u\n", max_intensity);
         
-    atomicAdd((unsigned int *)&num[(img_gray[i]/L)], 1);
+    atomicAdd((unsigned int *)&num[(intensity/L)], 1);
 }
 
 
@@ -24,7 +36,7 @@ __global__ void apply_gamma_gpu(unsigned char *img_gray, double gamma, double fa
 }
 
 
-void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
+void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, char *log_file) {
     struct Histogram *hist = createHistogram();
     unsigned char *max_intensity = (unsigned char *)calloc(1, sizeof(unsigned char));
     size_t nBytes = (256/L)*sizeof(unsigned int);
@@ -61,6 +73,7 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
     printf("GPU Elapsed time: %f sec\n\n", time/1000);
+    write_to_file(log_file, "Gamma correction", time/1000, 1, 0);
     
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
@@ -91,6 +104,7 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size) {
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
     printf("GPU Elapsed time: %f sec\n\n", time/1000);
+    write_to_file(log_file, "Gradients", time/1000, 1, 0);          // to merge with previous kernel
 
     err = cudaGetLastError();
     if(err != cudaSuccess) {

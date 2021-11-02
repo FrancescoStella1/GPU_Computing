@@ -19,11 +19,19 @@
 #include "./utils/hog_utils.c"
 #include "./utils/CUDA/hog_utils_gpu.cu"
 #include "./utils/video_utils.c"
+#include "./utils/timing.c"
 
+#define CUDA_CHECK   0
+#define WRITE   0
+#define CPU   1
+#define CPU_TIMING   "timing_cpu.txt"
+#define GPU_TIMING   "timing_gpu.txt"
 
+/*
 int CUDA_CHECK = 0;     // Temporary
 int WRITE = 0;          // Temporary
 int CPU = 1;            // Temporary
+*/
 
 
 int main (int argc, char **argv) {
@@ -108,9 +116,10 @@ int main (int argc, char **argv) {
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
         printf("[Grayscale conversion CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+        write_to_file(CPU_TIMING, "Grayscale", clk_elapsed, 0, 0);
     }
     else {
-        cuda_convert(h_img, h_img_gray, width, height);
+        cuda_convert(h_img, h_img_gray, width, height, GPU_TIMING);
     }
 
     if(WRITE)
@@ -125,9 +134,10 @@ int main (int argc, char **argv) {
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
         printf("[Gamma correction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+        write_to_file(CPU_TIMING, "Gamma correction", clk_elapsed, 0, 0);
     }
     else {
-        cuda_gamma_correction(h_img_gray, size);
+        cuda_gamma_correction(h_img_gray, size, GPU_TIMING);
     }
 
     if(WRITE)
@@ -144,9 +154,10 @@ int main (int argc, char **argv) {
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
         printf("[Gradients computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+        write_to_file(CPU_TIMING, "Gradients", clk_elapsed, 0, 0);
     }
     else {
-        cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height);
+        cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height, GPU_TIMING);
     }
 
     if(WRITE) {
@@ -165,9 +176,10 @@ int main (int argc, char **argv) {
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
         printf("[Magnitude & Direction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+        write_to_file(CPU_TIMING, "Magnitude and Direction", clk_elapsed, 0, 0);
     }
     else {
-        cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width*height);
+        cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width*height, GPU_TIMING);
     }
 
     if(WRITE) {
@@ -182,9 +194,10 @@ int main (int argc, char **argv) {
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
         printf("[HOG computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+        write_to_file(CPU_TIMING, "HOG computation", clk_elapsed, 0, 1);
     }
     else {
-        cuda_compute_hog(magnitude, direction, width, height);
+        cuda_compute_hog(magnitude, direction, width, height, GPU_TIMING);
     }
 
     printf("\n\n [DONE] \n\n");

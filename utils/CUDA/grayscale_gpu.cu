@@ -1,5 +1,6 @@
 #include "../grayscale.h"
 #include "../common.h"
+#include "../timing.c"
 
 #define BLOCKDIM   32
 
@@ -21,7 +22,7 @@ __global__ void grayscale_gpu(unsigned char *img, unsigned char *img_gray, const
 
 
 
-void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, int height) {
+void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, int height, char *log_file) {
     // Device memory allocation
     unsigned char *d_img;
     unsigned char *d_img_gray;
@@ -53,6 +54,7 @@ void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, in
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
     printf("GPU Elapsed time: %f sec\n\n", time/1000);
+    write_to_file(log_file, "Grayscale", time/1000, 1, 0);
 
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {

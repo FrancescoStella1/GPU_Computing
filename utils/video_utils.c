@@ -2,11 +2,13 @@
  This file is based on examples and guidelines retrieved from https://ffmpeg.org/doxygen/2.0 and http://dranger.com/ffmpeg/tutorial01.html
 */
 #include "video_utils.h"
+#include "timing.c"
 #include <dirent.h>
-//#include <stdio.h>
 #include <sys/stat.h>
 
 #define MAX_FRAMES   10
+#define VID_CPU_TIMING   "video_timing_cpu.txt"
+#define VID_GPU_TIMING   "video_timing_gpu.txt"
 
 
 void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
@@ -182,9 +184,10 @@ void process_frames(char *path, int cpu, int write) {
                 clock_t clk_end = clock();
                 double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
                 printf("[Grayscale conversion CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+                write_to_file(VID_CPU_TIMING, "Grayscale", clk_elapsed, 0, 0);
             }
             else {
-                cuda_convert(h_img, h_img_gray, width, height);
+                cuda_convert(h_img, h_img_gray, width, height, VID_GPU_TIMING);
             }
 
             if(write) {
@@ -201,9 +204,10 @@ void process_frames(char *path, int cpu, int write) {
                 clock_t clk_end = clock();
                 double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
                 printf("[Gamma correction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+                write_to_file(VID_CPU_TIMING, "Gamma correction", clk_elapsed, 0, 0);
             }
             else {
-                cuda_gamma_correction(h_img_gray, size);
+                cuda_gamma_correction(h_img_gray, size, VID_GPU_TIMING);
             }
 
             if(write) {
@@ -222,9 +226,10 @@ void process_frames(char *path, int cpu, int write) {
                 clock_t clk_end = clock();
                 double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
                 printf("[Gradients computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+                write_to_file(VID_CPU_TIMING, "Gradients", clk_elapsed, 0, 0);
             }
             else {
-                cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height);
+                cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height, VID_GPU_TIMING);
             }
 
             if(write) {
@@ -245,9 +250,10 @@ void process_frames(char *path, int cpu, int write) {
                 clock_t clk_end = clock();
                 double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
                 printf("[Magnitude & Direction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+                write_to_file(VID_CPU_TIMING, "Magnitude and Direction", clk_elapsed, 0, 0);
             }
             else {
-                cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width*height);
+                cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width*height, VID_GPU_TIMING);
             }
 
             if(write) {
@@ -264,9 +270,10 @@ void process_frames(char *path, int cpu, int write) {
                 clock_t clk_end = clock();
                 double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
                 printf("[HOG computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+                write_to_file(VID_CPU_TIMING, "HOG computation", clk_elapsed, 0, 1);
             }
             else {
-                cuda_compute_hog(magnitude, direction, width, height);
+                cuda_compute_hog(magnitude, direction, width, height, VID_GPU_TIMING);
             }
             frame_num++;
         }

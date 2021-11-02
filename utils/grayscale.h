@@ -18,5 +18,6 @@ void convert(unsigned char *img, unsigned char *img_gray, const size_t size);
  * @param h_img_gray host pointer to the grayscale image.
  * @param width width of the image.
  * @param height height of the image.
+ * @param log_file file in which to save timings of the kernels.
 */
-void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, int height);
+void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, int height, char *log_file);

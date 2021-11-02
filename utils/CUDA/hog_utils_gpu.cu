@@ -1,4 +1,5 @@
 #include "../hog_utils.h"
+#include "../timing.c"
 
 
 __global__ void mag_dir_gpu(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int size) {
@@ -45,7 +46,7 @@ __global__ void hog_gpu(float *bins, unsigned char *magnitude, unsigned char *di
 }
 
 
-void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int dim) {
+void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int dim, char *log_file) {
 
     unsigned char *d_gradientX;
     unsigned char *d_gradientY;
@@ -85,6 +86,7 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
     printf("GPU Elapsed time: %f sec\n\n", time/1000);
+    write_to_file(log_file, "Magnitude and Direction", time/1000, 1, 0);
 
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
@@ -105,7 +107,7 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
 }
 
 
-void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int width, int height) {
+void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int width, int height, char *log_file) {
     unsigned char *d_magnitude, *d_direction;
     float *d_bins;
     size_t size = width*height;
@@ -145,6 +147,7 @@ void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int wi
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
     printf("GPU Elapsed time: %f sec\n\n", time/1000);
+    write_to_file(log_file, "HOG computation", time/1000, 1, 1);
 
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {

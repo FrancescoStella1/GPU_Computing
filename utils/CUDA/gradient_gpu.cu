@@ -1,4 +1,5 @@
 #include "../gradient.h"
+#include "../timing.c"
 
 #define TILE_WIDTH   (BLOCKDIM + MASK_SIZE - 1)
 
@@ -87,7 +88,7 @@ __global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_
 
 
 
-void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, unsigned char *img_grad_v, int width, int height) {
+void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, unsigned char *img_grad_v, int width, int height, char *log_file) {
     unsigned char *d_img_grad, *d_grad_h, *d_grad_v;
 
     size_t size = width*height;
@@ -126,6 +127,7 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
     printf("GPU Elapsed time: %f sec\n\n", time/1000);
+    write_to_file(log_file, "Gradients", time/1000, 1, 0);
     
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {

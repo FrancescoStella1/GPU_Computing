@@ -55,9 +55,10 @@ void compute_hog(unsigned char *magnitude, unsigned char *direction, int width, 
  * @param magnitude pointer to the magnitude of the gradients.
  * @param direction pointer to the direction of the gradients.
  * @param dim size of the input gradients.
+ * @param log_file file in which to save timings of the kernels.
  * 
 */
-void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int dim);
+void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int dim, char *log_file);
 
 
 /**
@@ -66,5 +67,6 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
  * @param direction pointer to the direction vector.
  * @param width width of the image.
  * @param height height of the image.
+ * @param log_file file in which to save timings of the kernels.
 */
-void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int width, int height);
+void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int width, int height, char *log_file);

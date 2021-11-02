@@ -6,6 +6,7 @@
         "string_view": "c",
         "ranges": "c",
         "video_utils.h": "c",
-        "stat.h": "c"
+        "stat.h": "c",
+        "*.ds_store": "cpp"
     }
 }
