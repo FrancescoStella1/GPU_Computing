@@ -9,13 +9,11 @@ struct Histogram *createHistogram() {
 }
 
 
-double compute_gamma(unsigned int *num, long *cnum, const size_t size, unsigned char *max_intensity = NULL) {
+double compute_gamma(unsigned int *num, long *cnum, const size_t size) {
     // First cumulative bin equal to the first original bin
     cnum[0] = num[0];
     for(int i=1; i<(256/L); i++) {
         cnum[i] = (num[i] + cnum[i-1]);
-        if(max_intensity != NULL && num[i]>0)
-            *max_intensity = i*L;
     }
 
     // Compute cumulative histogram
@@ -41,6 +39,8 @@ double compute_gamma(unsigned int *num, long *cnum, const size_t size, unsigned 
 
     // Compute gamma value
     double g = log2((double)(median-min)/(max-median));
+    
+    //printf("Lower bin: %u\nMedian bin: %u\nUpper bin: %u\n", min, median, max);
     //printf("gamma value: %f\n", g);
 
     // Normalize g
@@ -73,11 +73,11 @@ void gamma_correction(struct Histogram *hist, unsigned char *img_gray, const siz
 
     double g = compute_gamma(hist->num, hist->cnum, size);
     double factor = *max_intensity/pow(*max_intensity, 1/g);
-    /*
-    printf("Normalized gamma value: %f\n", g);
-    printf("Factor: %.4f\n", factor);
-    printf("Max intensity: %u\n", *max_intensity);
-    */
+    
+    //printf("Normalized gamma value: %f\n", g);
+    //printf("Factor: %.4f\n", factor);
+    //printf("Max intensity: %u\n", *max_intensity);
+    
    
     // Apply gamma correction
     for(unsigned char *p=img_gray; p<(img_gray + size); p++) {

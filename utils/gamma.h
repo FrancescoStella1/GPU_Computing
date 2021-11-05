@@ -33,10 +33,9 @@ struct Histogram *createHistogram();
  * @param num pointer to the histogram.
  * @param cnum pointer to the cumulative histogram.
  * @param size size of the grayscale image.
- * @param max_intensity pointer to the maximum intensity value in the grayscale image, default to NULL.
  * @return normalized gamma value.
 */
-double compute_gamma(unsigned int *num, long *cnum, const size_t size, unsigned char *max_intensity);
+double compute_gamma(unsigned int *num, long *cnum, const size_t size);
 
 
 /**
