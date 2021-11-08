@@ -143,8 +143,8 @@ int main (int argc, char **argv) {
     if(WRITE)
         stbi_write_jpg("images/results/testGammaCorrection.jpg", width, height, 1, h_img_gray, 100);
 
-    unsigned char* gradientX = (unsigned char*) malloc (size);
-    unsigned char* gradientY = (unsigned char*) malloc (size);
+    unsigned char* gradientX = (unsigned char*)calloc(width*height, sizeof(unsigned char));
+    unsigned char* gradientY = (unsigned char*)calloc(width*height, sizeof(unsigned char));
 
     // Gradients computation on CPU/GPU
     if(CPU) {
@@ -165,8 +165,8 @@ int main (int argc, char **argv) {
         stbi_write_jpg("images/results/gradientY.jpg", width, height, 1, gradientY, 100);
     }
 
-    unsigned char *magnitude = (unsigned char *)malloc(size);
-    unsigned char *direction = (unsigned char *)malloc(size);
+    unsigned char *magnitude = (unsigned char *)calloc(width*height, sizeof(unsigned char));
+    unsigned char *direction = (unsigned char *)calloc(width*height, sizeof(unsigned char));
 
     // Magnitude and Direction computation on CPU/GPU
     if(CPU) {

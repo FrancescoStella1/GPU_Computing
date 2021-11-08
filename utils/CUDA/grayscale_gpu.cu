@@ -53,7 +53,7 @@ void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, in
     cudaEventRecord(end, 0);
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
-    printf("GPU Elapsed time: %f sec\n\n", time/1000);
+    printf("[Grayscale] - GPU Elapsed time: %f sec\n\n", time/1000);
     write_to_file(log_file, "Grayscale", time/1000, 1, 0);
 
     cudaError_t err = cudaGetLastError();

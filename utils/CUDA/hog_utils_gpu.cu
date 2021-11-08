@@ -2,7 +2,7 @@
 #include "../timing.c"
 
 
-__global__ void mag_dir_gpu(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int size) {
+__global__ void mag_dir_gpu(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, size_t size) {
     uint i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i >= size)
         return;
@@ -54,10 +54,13 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
     unsigned char *d_direction;
     size_t size = dim;
 
-    CHECK(cudaMallocHost((void **)&d_gradientX, size));
-    CHECK(cudaMallocHost((void **)&d_gradientY, size));
-    CHECK(cudaMallocHost((void **)&d_magnitude, size));
-    CHECK(cudaMallocHost((void **)&d_direction, size));
+    memset(magnitude, 0, size);
+    memset(direction, 0, size);
+
+    CHECK(cudaMallocHost((unsigned char **)&d_gradientX, size));
+    CHECK(cudaMallocHost((unsigned char **)&d_gradientY, size));
+    CHECK(cudaMallocHost((unsigned char **)&d_magnitude, size));
+    CHECK(cudaMallocHost((unsigned char **)&d_direction, size));
 
     if(d_gradientX == NULL || d_gradientY == NULL || d_magnitude == NULL || d_direction == NULL)   {
         printf("Unable to allocate memory on GPU.\n");
@@ -80,12 +83,12 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
     float time;
     
     cudaEventRecord(start, 0);
-    mag_dir_gpu<<< grid, block >>>(d_gradientX, d_gradientY, d_magnitude, d_direction, dim);
+    mag_dir_gpu<<< grid, block >>>(d_gradientX, d_gradientY, d_magnitude, d_direction, size);
     CHECK(cudaDeviceSynchronize());
     cudaEventRecord(end, 0);
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
-    printf("GPU Elapsed time: %f sec\n\n", time/1000);
+    printf("[Magnitude & Direction] - GPU Elapsed time: %f sec\n\n", time/1000);
     write_to_file(log_file, "Magnitude and Direction", time/1000, 1, 0);
 
     cudaError_t err = cudaGetLastError();
@@ -115,11 +118,11 @@ void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int wi
     size_t nBytes = NUM_BINS*num_blocks*sizeof(float);
 
     struct Hog *hog = (struct Hog *)malloc(sizeof(struct Hog));
-    hog->bins = (float *)calloc(NUM_BINS*num_blocks, sizeof(float));
+    hog->bins = (float *)malloc(nBytes);
     
-    CHECK(cudaMallocHost((void **)&d_magnitude, size));
-    CHECK(cudaMallocHost((void **)&d_direction, size));
-    CHECK(cudaMallocHost((void **)&d_bins, nBytes));
+    CHECK(cudaMallocHost((unsigned char **)&d_magnitude, size));
+    CHECK(cudaMallocHost((unsigned char **)&d_direction, size));
+    CHECK(cudaMallocHost((float **)&d_bins, nBytes));
     if(d_magnitude == NULL || d_direction == NULL || d_bins == NULL) {
         printf("Unable to allocate memory on GPU.\n");
         exit(EXIT_FAILURE);
@@ -146,7 +149,7 @@ void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int wi
     cudaEventRecord(end, 0);
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
-    printf("GPU Elapsed time: %f sec\n\n", time/1000);
+    printf("[HOG Computation] - GPU Elapsed time: %f sec\n\n", time/1000);
     write_to_file(log_file, "HOG computation", time/1000, 1, 1);
 
     cudaError_t err = cudaGetLastError();

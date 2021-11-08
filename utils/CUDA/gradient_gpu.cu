@@ -97,7 +97,7 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     const int h_sobelY[] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
     const size_t mask_dim = sizeof(int)*MASK_SIZE*MASK_SIZE;
 
-    CHECK(cudaMallocHost((void **)&d_img_grad, size));
+    CHECK(cudaMalloc((void **)&d_img_grad, size));
     CHECK(cudaMallocHost((void **)&d_grad_h, size));
     CHECK(cudaMallocHost((void **)&d_grad_v, size));
     if(d_img_grad == NULL || d_grad_h == NULL || d_grad_v == NULL) {
@@ -109,7 +109,7 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     CHECK(cudaMemcpyToSymbol(sobelX, &h_sobelX, mask_dim));
     CHECK(cudaMemcpyToSymbol(sobelY, &h_sobelY, mask_dim));
 
-    CHECK(cudaMemcpyAsync(d_img_grad, img_gray, size, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_img_grad, img_gray, size, cudaMemcpyHostToDevice));
     CHECK(cudaDeviceSynchronize());
 
     dim3 block(BLOCKDIM, BLOCKDIM);
@@ -126,7 +126,7 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     cudaEventRecord(end, 0);
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
-    printf("GPU Elapsed time: %f sec\n\n", time/1000);
+    printf("[Gradients] - GPU Elapsed time: %f sec\n\n", time/1000);
     write_to_file(log_file, "Gradients", time/1000, 1, 0);
     
     cudaError_t err = cudaGetLastError();
@@ -141,7 +141,7 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     // Host-Device synchronization
     CHECK(cudaDeviceSynchronize());
 
-    CHECK(cudaFreeHost(d_img_grad));
+    CHECK(cudaFree(d_img_grad));
     CHECK(cudaFreeHost(d_grad_h));
     CHECK(cudaFreeHost(d_grad_v));
     CHECK(cudaEventDestroy(start));

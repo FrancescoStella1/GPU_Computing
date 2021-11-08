@@ -118,7 +118,7 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, char *l
     cudaEventRecord(end, 0);
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
-    printf("GPU Elapsed time: %f sec\n\n", time/1000);
+    printf("[Gamma create histogram] - GPU Elapsed time: %f sec\n\n", time/1000);
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
         printf("\n--> Error: %s\n", cudaGetErrorString(err));
@@ -142,14 +142,16 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, char *l
     printf("Factor: %f\n", factor);
     printf("Max intensity: %u\n", *h_max_intensity);
     
+    float time2;
     // Run second kernel
     cudaEventRecord(start, 0);
     apply_gamma_gpu<<< grid, block >>>(d_img_gray, g, factor, size);
     CHECK(cudaDeviceSynchronize());
     cudaEventRecord(end, 0);
     cudaEventSynchronize(end);
-    cudaEventElapsedTime(&time, start, end);
-    printf("GPU Elapsed time: %f sec\n\n", time/1000);
+    cudaEventElapsedTime(&time2, start, end);
+    printf("[Gamma Correction] - GPU Elapsed time: %f sec\n\n", (time + time2)/1000);
+    write_to_file(log_file, "Gamma Correction", (time + time2)/1000, 1, 0);
 
     err = cudaGetLastError();
     if(err != cudaSuccess) {
