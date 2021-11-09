@@ -9,6 +9,15 @@ struct Histogram *createHistogram() {
 }
 
 
+void delHistogram(struct Histogram *hist) {
+    if(hist != NULL) {
+        free(hist->num);
+        free(hist->cnum);
+        free(hist);
+    }
+}
+
+
 double compute_gamma(unsigned int *num, long *cnum, const size_t size) {
     // First cumulative bin equal to the first original bin
     cnum[0] = num[0];
@@ -50,15 +59,6 @@ double compute_gamma(unsigned int *num, long *cnum, const size_t size) {
         g=1.2;
 
     return g;
-}
-
-
-void delHistogram(struct Histogram *hist) {
-    if(hist != NULL) {
-        free(hist->num);
-        free(hist->cnum);
-        free(hist);
-    }
 }
 
 

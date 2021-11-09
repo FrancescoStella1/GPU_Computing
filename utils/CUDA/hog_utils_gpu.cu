@@ -54,8 +54,8 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
     unsigned char *d_direction;
     size_t size = dim;
 
-    memset(magnitude, 0, size);
-    memset(direction, 0, size);
+    //memset(magnitude, 0, size);
+    //memset(direction, 0, size);
 
     CHECK(cudaMallocHost((unsigned char **)&d_gradientX, size));
     CHECK(cudaMallocHost((unsigned char **)&d_gradientY, size));
@@ -110,15 +110,13 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
 }
 
 
-void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int width, int height, char *log_file) {
+void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direction, int width, int height, char *log_file) {
     unsigned char *d_magnitude, *d_direction;
     float *d_bins;
     size_t size = width*height;
     int num_blocks = (size + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
     size_t nBytes = NUM_BINS*num_blocks*sizeof(float);
-
-    struct Hog *hog = (struct Hog *)malloc(sizeof(struct Hog));
-    hog->bins = (float *)malloc(nBytes);
+    hog = allocate_histograms(num_blocks);
     
     CHECK(cudaMallocHost((unsigned char **)&d_magnitude, size));
     CHECK(cudaMallocHost((unsigned char **)&d_direction, size));
@@ -131,7 +129,7 @@ void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int wi
     // To do: implement streams
     CHECK(cudaMemcpyAsync(d_magnitude, magnitude, size, cudaMemcpyHostToDevice));
     CHECK(cudaMemcpyAsync(d_direction, direction, size, cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpyAsync(d_bins, hog->bins, nBytes, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpyAsync(d_bins, hog, nBytes, cudaMemcpyHostToDevice));
     CHECK(cudaDeviceSynchronize());
 
     dim3 block(HOG_BLOCK_SIDE, HOG_BLOCK_SIDE);
@@ -157,7 +155,7 @@ void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int wi
         printf("\n--> Error: %s\n", cudaGetErrorString(err));
     }
 
-    CHECK(cudaMemcpyAsync(hog->bins, d_bins, nBytes, cudaMemcpyDeviceToHost));
+    CHECK(cudaMemcpyAsync(hog, d_bins, nBytes, cudaMemcpyDeviceToHost));
 
     CHECK(cudaDeviceSynchronize());
 

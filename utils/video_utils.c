@@ -190,19 +190,21 @@ void process_frames(char *path, int cpu, int write) {
                 cuda_convert(h_img, h_img_gray, width, height, VID_GPU_TIMING);
             }
 
+            free(h_img);
+
             if(write) {
                 sprintf(out, "%s/%s%d.jpg", out_dir, "grayscale_frame", frame_num);
                 stbi_write_jpg(out, width, height, 1, h_img_gray, 100);
             }
 
-             struct Histogram *hist = createHistogram();
-
             // Gamma correction on CPU/GPU
             if(cpu) {
+                struct Histogram *hist = createHistogram();
                 clock_t clk_start = clock();
                 gamma_correction(hist, h_img_gray, size);
                 clock_t clk_end = clock();
                 double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
+                free(hist);
                 printf("[Gamma correction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
                 write_to_file(VID_CPU_TIMING, "Gamma correction", clk_elapsed, 0, 0);
             }
@@ -232,6 +234,8 @@ void process_frames(char *path, int cpu, int write) {
                 cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height, VID_GPU_TIMING);
             }
 
+            free(h_img_gray);
+
             if(write) {
                 sprintf(out, "%s/%s%d.jpg", out_dir, "gradientX_frame", frame_num);
                 stbi_write_jpg(out, width, height, 1, gradientX, 100);
@@ -256,6 +260,9 @@ void process_frames(char *path, int cpu, int write) {
                 cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width*height, VID_GPU_TIMING);
             }
 
+            free(gradientX);
+            free(gradientY);
+
             if(write) {
                 sprintf(out, "%s/%s%d.jpg", out_dir, "magnitude_frame", frame_num);
                 stbi_write_jpg(out, width, height, 1, magnitude, 100);
@@ -264,18 +271,21 @@ void process_frames(char *path, int cpu, int write) {
             }
 
             // HOG computation on CPU/GPU
+            float *hog;
+
             if(cpu) {
                 clock_t clk_start = clock();
-                compute_hog(magnitude, direction, width, height);
+                compute_hog(hog, magnitude, direction, width, height);
                 clock_t clk_end = clock();
                 double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
                 printf("[HOG computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
                 write_to_file(VID_CPU_TIMING, "HOG computation", clk_elapsed, 0, 1);
             }
             else {
-                cuda_compute_hog(magnitude, direction, width, height, VID_GPU_TIMING);
+                cuda_compute_hog(hog, magnitude, direction, width, height, VID_GPU_TIMING);
             }
             frame_num++;
+            free(hog);
         }
         closedir(d);
     }

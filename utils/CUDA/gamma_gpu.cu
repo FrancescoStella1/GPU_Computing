@@ -83,8 +83,8 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, char *l
     *h_max_intensity = 0;
     size_t nBytes = (256/L)*sizeof(unsigned int);
     size_t nBytes_1 = sizeof(unsigned int);
-    unsigned char *d_img_gray;
     unsigned int *d_num;
+    unsigned char *d_img_gray;
     unsigned int *d_max_intensity;
     double g = 0;
     double factor = 0;
@@ -132,6 +132,7 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, char *l
 
     // Free memory
     CHECK(cudaFree(d_num));
+    CHECK(cudaFree(d_img_gray));
     CHECK(cudaFree(d_max_intensity));
 
 
@@ -165,5 +166,7 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, char *l
     CHECK(cudaFree(d_img_gray));
     CHECK(cudaEventDestroy(start));
     CHECK(cudaEventDestroy(end));
-    
+
+    free(h_max_intensity);
+    free(hist);    
 }

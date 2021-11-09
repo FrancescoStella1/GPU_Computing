@@ -3,17 +3,19 @@
 #define NUM_BINS 9
 #define DELTA_THETA 20
 
-#ifndef STRUCT_HOG
-#define STRUCT_HOG
-
-struct Hog {
-    float *bins;
-};
-
-#endif
 
 /**
- * Computes magnitude of the gradients.
+ * @brief Creates the histograms for computing HOG.
+ * 
+ * @param num_blocks number of 8x8 blocks in the image.
+ * @return float* pointer to histograms needed to store HOG.
+ */
+float *allocate_histograms(int num_blocks);
+
+
+/**
+ * @brief Computes magnitude of the gradients.
+ * 
  * @param gradientX pointer to the horizontal gradient array.
  * @param gradientY pointer to the vertical gradient array.
  * @param magnitude pointer to the magnitude of gradients.
@@ -24,7 +26,7 @@ void compute_magnitude(unsigned char *gradientX, unsigned char *gradientY, unsig
 
 
 /**
- * Computes direction of the gradients.
+ * @brief Computes direction of the gradients.
  *
  * @param gradientX pointer to the horizontal gradient array.
  * @param gradientY pointer to the vertical gradient array.
@@ -36,19 +38,20 @@ void compute_direction(unsigned char *gradientX, unsigned char *gradientY, unsig
 
 
 /**
- * Computes Histogram of Oriented Gradients (HOG).
+ * @brief Computes Histogram of Oriented Gradients (HOG).
  * 
+ * @param hog pointer to the histograms (one for each 8x8 block in the image).
  * @param magnitude pointer to the magnitude of gradients array.
  * @param direction pointer to the direction of gradients array.
  * @param width width of the input arrays.
  * @param height height of the input arrays.
  *
 */
-void compute_hog(unsigned char *magnitude, unsigned char *direction, int width, int height);
+void compute_hog(float *hog, unsigned char *magnitude, unsigned char *direction, int width, int height);
 
 
 /**
- * Computes magnitude and direction of the gradients.
+ * @brief Computes magnitude and direction of the gradients.
  * 
  * @param gradientX pointer to the horizontal gradient array.
  * @param gradientY pointer to the vertical gradient array.
@@ -62,11 +65,13 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
 
 
 /**
- * Compute HOG from magnitude and direction.
+ * @brief Compute HOG from magnitude and direction.
+ * 
+ * @param hog pointer to the histograms (one for each 8x8 block in the image).
  * @param magnitude pointer to the magnitude vector.
  * @param direction pointer to the direction vector.
  * @param width width of the image.
  * @param height height of the image.
  * @param log_file file in which to save timings of the kernels.
 */
-void cuda_compute_hog(unsigned char *magnitude, unsigned char *direction, int width, int height, char *log_file);
+void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direction, int width, int height, char *log_file);

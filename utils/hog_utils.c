@@ -1,6 +1,18 @@
 #include "hog_utils.h"
 
 
+float *allocate_histograms(int num_blocks) {
+  float *hog = (float *)calloc(NUM_BINS*num_blocks, sizeof(float));
+  return hog;
+}
+
+
+void delete_histograms(float *hog) {
+  if(hog != NULL)
+    free(hog);
+}
+
+
 //calcola la magnitude del gradiente
 void compute_magnitude(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, int size){
   for (int i = 0; i < size; i++) {
@@ -16,10 +28,9 @@ void compute_direction(unsigned char *gradientX, unsigned char * gradientY, unsi
 }
 
 
-void compute_hog(unsigned char *magnitude, unsigned char *direction, int width, int height) {
-  struct Hog *hog = (struct Hog *)malloc(sizeof(struct Hog));
-  int num_blocks = (width*height)/HOG_BLOCK_SIDE + 1;
-  hog->bins = (float *)calloc(NUM_BINS*num_blocks, sizeof(float));
+void compute_hog(float *hog, unsigned char *magnitude, unsigned char *direction, int width, int height) {
+  int num_blocks = (width*height + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
+  hog = allocate_histograms(num_blocks);
 
   int row = 0;
   int col = 0;
@@ -38,8 +49,8 @@ void compute_hog(unsigned char *magnitude, unsigned char *direction, int width, 
 
           float l_value = magnitude[i*width + j] * ((direction[i*width + col] - DELTA_THETA/2)/DELTA_THETA);  // value of the j-th bin
           float u_value = magnitude[i*width + j] * ((direction[i*width + col] - cbin)/DELTA_THETA);
-          hog->bins[block_idx*NUM_BINS + lbin] += l_value;
-          hog->bins[block_idx*NUM_BINS + ubin] += u_value;
+          hog[block_idx*NUM_BINS + lbin] += l_value;
+          hog[block_idx*NUM_BINS + ubin] += u_value;
         }
       }
       col += HOG_BLOCK_SIDE;
