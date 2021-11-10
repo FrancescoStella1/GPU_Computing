@@ -57,10 +57,10 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
     //memset(magnitude, 0, size);
     //memset(direction, 0, size);
 
-    CHECK(cudaMallocHost((unsigned char **)&d_gradientX, size));
-    CHECK(cudaMallocHost((unsigned char **)&d_gradientY, size));
-    CHECK(cudaMallocHost((unsigned char **)&d_magnitude, size));
-    CHECK(cudaMallocHost((unsigned char **)&d_direction, size));
+    CHECK(cudaMallocHost((void **)&d_gradientX, size));
+    CHECK(cudaMallocHost((void **)&d_gradientY, size));
+    CHECK(cudaMallocHost((void **)&d_magnitude, size));
+    CHECK(cudaMallocHost((void **)&d_direction, size));
 
     if(d_gradientX == NULL || d_gradientY == NULL || d_magnitude == NULL || d_direction == NULL)   {
         printf("Unable to allocate memory on GPU.\n");
@@ -118,9 +118,9 @@ void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direc
     size_t nBytes = NUM_BINS*num_blocks*sizeof(float);
     hog = allocate_histograms(num_blocks);
     
-    CHECK(cudaMallocHost((unsigned char **)&d_magnitude, size));
-    CHECK(cudaMallocHost((unsigned char **)&d_direction, size));
-    CHECK(cudaMallocHost((float **)&d_bins, nBytes));
+    CHECK(cudaMallocHost((void **)&d_magnitude, size));
+    CHECK(cudaMallocHost((void **)&d_direction, size));
+    CHECK(cudaMallocHost((void **)&d_bins, nBytes));
     if(d_magnitude == NULL || d_direction == NULL || d_bins == NULL) {
         printf("Unable to allocate memory on GPU.\n");
         exit(EXIT_FAILURE);

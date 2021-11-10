@@ -90,9 +90,9 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, char *l
     double factor = 0;
 
     // Device memory allocation
-    CHECK(cudaMalloc((unsigned int **)&d_num, nBytes));
-    CHECK(cudaMalloc((unsigned char **)&d_img_gray, size));
-    CHECK(cudaMalloc((unsigned int **)&d_max_intensity, sizeof(unsigned int)));
+    CHECK(cudaMalloc((void **)&d_num, nBytes));
+    CHECK(cudaMalloc((void **)&d_img_gray, size));
+    CHECK(cudaMalloc((void **)&d_max_intensity, sizeof(unsigned int)));
     if(d_num == NULL || d_img_gray == NULL || d_max_intensity == NULL) {
         printf("Unable to allocate memory on GPU.\n");
         exit(EXIT_FAILURE);
@@ -132,7 +132,6 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, char *l
 
     // Free memory
     CHECK(cudaFree(d_num));
-    CHECK(cudaFree(d_img_gray));
     CHECK(cudaFree(d_max_intensity));
 
 
