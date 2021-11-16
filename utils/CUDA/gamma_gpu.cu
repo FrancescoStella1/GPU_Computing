@@ -2,16 +2,8 @@
 #include "../gamma.h"
 #include "../common.h"
 
-#define BLOCKDIM   32
+#define BLOCKDIM   64
 
-
-__global__ void old_create_hist_gpu(unsigned int *num, unsigned char *img_gray, const size_t size) {
-    uint i = blockIdx.x * blockDim.x + threadIdx.x;
-    if(i>=size)
-        return;
-        
-    atomicAdd((unsigned int *)&num[(img_gray[i]/L)], 1);
-}
 
 __global__ void create_hist_gpu(unsigned int *num, unsigned char *img_gray, unsigned int *max_intensity, const size_t size) {
     uint i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -21,45 +13,38 @@ __global__ void create_hist_gpu(unsigned int *num, unsigned char *img_gray, unsi
     // Create array s_num in order to store *num in shared memory
     __shared__ unsigned int s_num[256/L];
     s_num[threadIdx.x] = 0;
-    if(threadIdx.x >= 16) {
-      s_num[(threadIdx.x*2)] = 0;
-      s_num[(threadIdx.x*2)+1] = 0;
-    }
+    __syncthreads();
 
-    __syncthreads();
-    
-    // Variable in shared memory to find block-level maximum intensity
     __shared__ unsigned int s_intensity;
-    if(threadIdx.x==0)
+    unsigned int laneIdx = threadIdx.x % 32;
+    unsigned int warpIdx = threadIdx.x / 32;
+
+    if(threadIdx.x == 0)
       s_intensity = 0;
-    
-    __syncthreads();
 
     unsigned int intensity = (unsigned int)img_gray[i];
     atomicAdd((unsigned int *)&s_num[(intensity/L)], 1);
-    __syncthreads();
-    
-    for(int idx=256/L; idx>0; idx--) {
-        if(s_num[idx] > 0 and (intensity/L) < idx)                // if there are intensities greater than the intensity of this thread, break the loop
-          break;
-        if(s_num[idx] > 0 and (intensity/L) == idx) {             // otherwise, compute the maximum intensity in the block
-          atomicMax((unsigned int *)&s_intensity, intensity);
-          break;
-        }
+
+    for(int srcLane=1; srcLane<32; srcLane++) {
+      int srcLaneVal = __shfl(intensity, srcLane);
+      if(laneIdx == 0 && srcLaneVal > intensity)                  // only threads 0 and 32
+        intensity = srcLaneVal;
     }
+
     __syncthreads();
 
     atomicAdd((unsigned int *)&num[threadIdx.x], s_num[threadIdx.x]);
-    if(threadIdx.x >= 16) {
-      atomicAdd((unsigned int *)&num[(threadIdx.x*2)], s_num[(threadIdx.x*2)]);
-      atomicAdd((unsigned int *)&num[(threadIdx.x*2)+1], s_num[(threadIdx.x*2)+1]);
+
+    if(laneIdx == 0) {
+      atomicMax((unsigned int *)&s_intensity, intensity);
     }
     __syncthreads();
+
+    // Now s_intensity has the maximum intensity related to the current block
 
     if(threadIdx.x == 0) {
       atomicMax((unsigned int *)max_intensity, s_intensity);
     }
-    __syncthreads();
 }
 
 

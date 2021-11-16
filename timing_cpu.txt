@@ -1,78 +1,39 @@
 Grayscale
-	0.003462
+	0.004394
 Gamma correction
-	0.009303
+	0.034831
 Gradients
-	0.028390
+	0.033704
 Magnitude and Direction
-	0.023525
+	0.091030
 HOG computation
-	0.012712
+	0.015391
 
 ###
 
 Grayscale
-	0.003537
+	0.004585
 Gamma correction
-	0.025382
+	0.026106
 Gradients
-	0.026885
+	0.026668
 Magnitude and Direction
-	0.076231
+	0.086670
 HOG computation
-	0.011767
+	0.015695
 
 ###
 
 Grayscale
-	0.003492
+	0.003557
 Gamma correction
-	0.027876
+	0.020842
 Gradients
-	0.027512
+	0.021397
 Magnitude and Direction
-	0.074141
+	0.070520
 HOG computation
-	0.013274
-
-###
-
-Grayscale
-	0.004597
-Gamma correction
-	0.032517
-Gradients
-	0.032959
-Magnitude and Direction
-	0.089973
-HOG computation
-	0.016970
-
-###
-
-Grayscale
-	0.005477
-Gamma correction
-	0.030924
-Gradients
-	0.029845
-Magnitude and Direction
-	0.076958
-HOG computation
-	0.013627
-
-###
-
-Grayscale
-	0.003512
-Gamma correction
-	0.026173
-Gradients
-	0.027829
-Magnitude and Direction
-	0.077162
-HOG computation
-	0.015152
+	0.011391
 
 ###
 
