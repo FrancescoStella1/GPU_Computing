@@ -189,7 +189,7 @@ int main (int argc, char **argv) {
     }
 
     // HOG computation on CPU/GPU
-    float *hog;
+    float *hog = NULL;
 
     if(CPU) {
         clock_t clk_start = clock();

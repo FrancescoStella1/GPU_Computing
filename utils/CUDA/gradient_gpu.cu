@@ -1,7 +1,7 @@
 #include "../gradient.h"
 #include "../timing.c"
 
-#define TILE_WIDTH   (BLOCKDIM + MASK_SIZE - 1)
+#define TILE_WIDTH   (BLOCKSIZE + MASK_SIZE - 1)
 
 
 __constant__ int sobelX[MASK_SIZE*MASK_SIZE*sizeof(int)];
@@ -14,7 +14,7 @@ __global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     int radius = MASK_RADIUS;
-    int block_m_radius = BLOCKDIM - radius;
+    int block_m_radius = BLOCKSIZE - radius;
 
     __shared__ unsigned char img_shared[TILE_WIDTH][TILE_WIDTH];
 
@@ -112,8 +112,8 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     CHECK(cudaMemcpy(d_img_grad, img_gray, size, cudaMemcpyHostToDevice));
     CHECK(cudaDeviceSynchronize());
 
-    dim3 block(BLOCKDIM, BLOCKDIM);
-    dim3 grid((width + BLOCKDIM - 1)/BLOCKDIM, (height + BLOCKDIM - 1)/BLOCKDIM);
+    dim3 block(BLOCKSIZE, BLOCKSIZE);
+    dim3 grid((width + BLOCKSIZE - 1)/BLOCKSIZE, (height + BLOCKSIZE - 1)/BLOCKSIZE);
     
     // Kernel launch
     cudaEvent_t start, end;

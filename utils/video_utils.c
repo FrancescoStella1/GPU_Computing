@@ -12,7 +12,7 @@
 
 
 void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
-    FILE *pFile;
+    FILE *pFile = NULL;
     char szFilename[128];
     int y;
 
@@ -35,6 +35,7 @@ void saveFrame(AVFrame *frame, int width, int height, int iFrame) {
     }
     
     fclose(pFile);
+    closedir(dir);
 }
 
 
@@ -54,8 +55,12 @@ void extract_frames(char *filename) {
     struct SwsContext *sws_ctx = NULL;
 
     // Open input file and allocate format context
-    if(avformat_open_input(&pFormatContext, filename, NULL, NULL) < 0) {
+    int err = avformat_open_input(&pFormatContext, filename, NULL, NULL);
+    if(err < 0) {
+        char err_buff[128];
+        av_strerror(err, err_buff, sizeof(err_buff));
         fprintf(stderr, "Could not open source video file %s.\n", filename);
+        fprintf(stderr, "%s\n", err_buff);
         exit(1);
     }
     
@@ -142,13 +147,13 @@ void extract_frames(char *filename) {
 
 
 void process_frames(char *path, int cpu, int write) {
-    DIR *d;
-    struct dirent *dir;
+    DIR *d = NULL;
+    struct dirent *dir = NULL;
     char *out_dir = "./images/results";
     char *out = (char *)calloc(strlen(out_dir)+24, sizeof(char));
     char *frames_dir = "./images/results/frames";
     char *frame = (char *)calloc(strlen(frames_dir)+14, sizeof(char));
-    unsigned char *img;
+    unsigned char *img = NULL;
     int width, height, channels;
     int frame_num = 0;
 
@@ -271,7 +276,7 @@ void process_frames(char *path, int cpu, int write) {
             }
 
             // HOG computation on CPU/GPU
-            float *hog;
+            float *hog = NULL;
 
             if(cpu) {
                 clock_t clk_start = clock();
@@ -289,5 +294,8 @@ void process_frames(char *path, int cpu, int write) {
         }
         closedir(d);
     }
+    free(out);
+    free(frame);
+    free(img);
     printf("\n\n[ DONE ]\n\n");
 }
