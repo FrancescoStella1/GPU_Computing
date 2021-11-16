@@ -1,7 +1,8 @@
-#define PI 3.14
-#define HOG_BLOCK_SIDE 8
-#define NUM_BINS 9
-#define DELTA_THETA 20
+#define PI   3.14
+#define MAGDIR_BLOCK_SIZE   32
+#define HOG_BLOCK_SIDE   8
+#define NUM_BINS   9
+#define DELTA_THETA   20
 
 
 /**

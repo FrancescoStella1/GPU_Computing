@@ -26,15 +26,15 @@ __global__ void hog_gpu(float *bins, unsigned char *magnitude, unsigned char *di
     if(i >= width || j >= height)
         return;
 
-    int lbin = direction[j*width + i]/DELTA_THETA;
+    unsigned char mag = magnitude[j*width + i];
+    unsigned char dir = direction[j*width + i];
+    int lbin = dir/DELTA_THETA;
     int ubin = lbin + 1;
     if(ubin>=NUM_BINS)
       ubin = 0;
 
     int cbin = (lbin + 0.5);
 
-    unsigned char mag = magnitude[j*width + i];
-    unsigned char dir = direction[j*width + i];
     float l_value =  mag * ((dir - (DELTA_THETA/2))/DELTA_THETA);
     float u_value = mag * ((dir - cbin)/DELTA_THETA);
 
@@ -54,9 +54,6 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
     unsigned char *d_direction;
     size_t size = dim;
 
-    //memset(magnitude, 0, size);
-    //memset(direction, 0, size);
-
     CHECK(cudaMallocHost((void **)&d_gradientX, size));
     CHECK(cudaMallocHost((void **)&d_gradientY, size));
     CHECK(cudaMallocHost((void **)&d_magnitude, size));
@@ -74,7 +71,7 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
 
     CHECK(cudaDeviceSynchronize());
 
-    dim3 block(HOG_BLOCK_SIDE);
+    dim3 block(MAGDIR_BLOCK_SIZE);
     dim3 grid((size+block.x-1)/block.x);
 
     cudaEvent_t start, end;

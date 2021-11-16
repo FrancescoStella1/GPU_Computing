@@ -22,7 +22,7 @@
 #include "./utils/timing.c"
 
 #define CUDA_CHECK   0
-#define WRITE   1
+#define WRITE   0
 #define CPU   1
 #define CPU_TIMING   "timing_cpu.txt"
 #define GPU_TIMING   "timing_gpu.txt"
