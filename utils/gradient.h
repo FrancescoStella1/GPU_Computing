@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 
+#define CONV_BLOCK_SIDE   8
 #define MASK_RADIUS   1
 #define MASK_SIZE   (2 * MASK_RADIUS +1)
 

@@ -26,4 +26,5 @@ void write_to_file(char *filename, char *operation, double elapsed, int device, 
         fprintf(fp, "\n###\n\n");
 
     fclose(fp);
+    free(elapsed_str);
 }

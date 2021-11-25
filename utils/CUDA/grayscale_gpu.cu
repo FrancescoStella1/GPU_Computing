@@ -53,15 +53,16 @@ void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, in
     cudaEventRecord(end, 0);
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
-    printf("[Grayscale] - GPU Elapsed time: %f sec\n\n", time/1000);
-    write_to_file(log_file, "Grayscale", time/1000, 1, 0);
+    time /= 1000;
+    printf("[Grayscale] - GPU Elapsed time: %f sec\n\n", time);
+    write_to_file(log_file, "Grayscale", time, 1, 0);
 
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
         printf("\n--> Error: %s\n", cudaGetErrorString(err));
     }
 
-    // Data transfer H2D
+    // Data transfer D2H
     CHECK(cudaMemcpy(h_img_gray, d_img_gray, size, cudaMemcpyDeviceToHost));
 
     // Free memory

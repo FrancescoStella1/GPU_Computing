@@ -116,6 +116,7 @@ int main (int argc, char **argv) {
         cuda_convert(h_img, h_img_gray, width, height, GPU_TIMING);
     }
 
+    free(img);
     free(h_img);
 
     if(WRITE)
@@ -189,7 +190,7 @@ int main (int argc, char **argv) {
     }
 
     // HOG computation on CPU/GPU
-    float *hog;
+    float *hog = NULL;
 
     if(CPU) {
         clock_t clk_start = clock();
