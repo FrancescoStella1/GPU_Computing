@@ -22,7 +22,8 @@ __global__ void create_hist_gpu(unsigned int *num, unsigned char *img_gray, unsi
       s_intensity = 0;
 
     unsigned int intensity = (unsigned int)img_gray[i];
-    __syncthreads();
+    __syncthreads();                                              // s_num must be set entirely to 0
+
     atomicAdd((unsigned int *)&s_num[(intensity/L)], 1);
 
     for(int srcLane=1; srcLane<32; srcLane++) {
@@ -60,10 +61,6 @@ __global__ void apply_gamma_gpu(unsigned char *img_gray, double gamma, double fa
 
 void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, char *log_file) {
     struct Histogram *hist = createHistogram();
-    /**for(int idx=0; idx < (256/L); idx++) {
-        hist->num[idx] = 0;
-        hist->cnum[idx] = 0;
-    }**/
     unsigned int *h_max_intensity = (unsigned int *)malloc(sizeof(unsigned int));
     *h_max_intensity = 0;
     size_t nBytes = (256/L)*sizeof(unsigned int);

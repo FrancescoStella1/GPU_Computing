@@ -141,7 +141,7 @@ void extract_frames(char *filename) {
 }
 
 
-void process_frames(char *path, int cpu, int write) {
+void process_frames(char *path, int cpu, int num_streams, int write) {
     DIR *d;
     struct dirent *dir;
     char *out_dir = "./images/results";
@@ -187,7 +187,7 @@ void process_frames(char *path, int cpu, int write) {
                 write_to_file(VID_CPU_TIMING, "Grayscale", clk_elapsed, 0, 0);
             }
             else {
-                cuda_convert(h_img, h_img_gray, width, height, VID_GPU_TIMING);
+                cuda_convert(h_img, h_img_gray, width, height, num_streams, VID_GPU_TIMING);
             }
 
             free(h_img);
