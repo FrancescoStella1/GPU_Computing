@@ -24,6 +24,7 @@
 #define CUDA_CHECK   0
 #define WRITE   0
 #define CPU   1
+#define N_STREAMS   4
 #define CPU_TIMING   "timing_cpu.txt"
 #define GPU_TIMING   "timing_gpu.txt"
 
@@ -73,7 +74,7 @@ int main (int argc, char **argv) {
         else if(strcmp(argv[1], "-v") == 0) {
             extract_frames(argv[2]);
             printf("Frames extracted\n");
-            process_frames("./images/results/frames", CPU, WRITE);
+            process_frames("./images/results/frames", CPU, N_STREAMS, WRITE);
             exit(1);
         }
         else {
@@ -113,9 +114,10 @@ int main (int argc, char **argv) {
         write_to_file(CPU_TIMING, "Grayscale", clk_elapsed, 0, 0);
     }
     else {
-        cuda_convert(h_img, h_img_gray, width, height, GPU_TIMING);
+        cuda_convert(h_img, h_img_gray, width, height, N_STREAMS, GPU_TIMING);
     }
 
+    free(img);
     free(h_img);
 
     if(WRITE)

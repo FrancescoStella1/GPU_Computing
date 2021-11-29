@@ -1,7 +1,7 @@
 #include "../gradient.h"
 #include "../timing.c"
 
-#define TILE_WIDTH   (BLOCKSIZE + MASK_SIZE - 1)
+#define TILE_WIDTH   (CONV_BLOCK_SIDE + MASK_SIZE - 1)
 
 
 __constant__ int sobelX[MASK_SIZE*MASK_SIZE*sizeof(int)];
@@ -14,7 +14,7 @@ __global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     int radius = MASK_RADIUS;
-    int block_m_radius = BLOCKSIZE - radius;
+    int block_m_radius = CONV_BLOCK_SIDE - radius;
 
     __shared__ unsigned char img_shared[TILE_WIDTH][TILE_WIDTH];
 
@@ -31,7 +31,7 @@ __global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_
         
         // top side of the block
         if ((y-radius) >= 0) 
-            img_shared[threadIdx.y][threadIdx.x + radius] = input_image[(y-radius) * width + x ];  
+            img_shared[threadIdx.y][threadIdx.x + radius] = input_image[(y-radius) * width + x];  
     }
 
     // Bottom side of the block
@@ -98,8 +98,8 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     const size_t mask_dim = sizeof(int)*MASK_SIZE*MASK_SIZE;
 
     CHECK(cudaMalloc((void **)&d_img_grad, size));
-    CHECK(cudaMallocHost((void **)&d_grad_h, size));
-    CHECK(cudaMallocHost((void **)&d_grad_v, size));
+    CHECK(cudaMalloc((void **)&d_grad_h, size));
+    CHECK(cudaMalloc((void **)&d_grad_v, size));
     if(d_img_grad == NULL || d_grad_h == NULL || d_grad_v == NULL) {
         printf("Unable to allocate memory on GPU.\n");
         exit(EXIT_FAILURE);
@@ -112,8 +112,8 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     CHECK(cudaMemcpy(d_img_grad, img_gray, size, cudaMemcpyHostToDevice));
     CHECK(cudaDeviceSynchronize());
 
-    dim3 block(BLOCKSIZE, BLOCKSIZE);
-    dim3 grid((width + BLOCKSIZE - 1)/BLOCKSIZE, (height + BLOCKSIZE - 1)/BLOCKSIZE);
+    dim3 block(CONV_BLOCK_SIDE, CONV_BLOCK_SIDE);
+    dim3 grid((width + CONV_BLOCK_SIDE - 1)/CONV_BLOCK_SIDE, (height + CONV_BLOCK_SIDE - 1)/CONV_BLOCK_SIDE);
     
     // Kernel launch
     cudaEvent_t start, end;
@@ -126,8 +126,9 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     cudaEventRecord(end, 0);
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
-    printf("[Gradients] - GPU Elapsed time: %f sec\n\n", time/1000);
-    write_to_file(log_file, "Gradients", time/1000, 1, 0);
+    time /= 1000;
+    printf("[Gradients] - GPU Elapsed time: %f sec\n\n", time);
+    write_to_file(log_file, "Gradients", time, 1, 0);
     
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
@@ -135,15 +136,12 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     }
 
     // D2H transfer
-    CHECK(cudaMemcpyAsync(img_grad_h, d_grad_h, size, cudaMemcpyDeviceToHost));
-    CHECK(cudaMemcpyAsync(img_grad_v, d_grad_v, size, cudaMemcpyDeviceToHost));
-
-    // Host-Device synchronization
-    CHECK(cudaDeviceSynchronize());
+    CHECK(cudaMemcpy(img_grad_h, d_grad_h, size, cudaMemcpyDeviceToHost));
+    CHECK(cudaMemcpy(img_grad_v, d_grad_v, size, cudaMemcpyDeviceToHost));
 
     CHECK(cudaFree(d_img_grad));
-    CHECK(cudaFreeHost(d_grad_h));
-    CHECK(cudaFreeHost(d_grad_v));
+    CHECK(cudaFree(d_grad_h));
+    CHECK(cudaFree(d_grad_v));
     CHECK(cudaEventDestroy(start));
     CHECK(cudaEventDestroy(end));
 }

@@ -59,7 +59,7 @@ void compute_hog(float *hog, unsigned char *magnitude, unsigned char *direction,
     row += HOG_BLOCK_SIDE;
     col = 0;
   }
-  for(int i=0; i<9; i++) {
-    printf("Hog bin %d: %.2f\n", i, hog[i]);
+  for(int idx=0; idx<NUM_BINS; idx++) {
+    printf("HOG - bin %d: %.2f\n", idx, hog[idx]);
   }
 }
