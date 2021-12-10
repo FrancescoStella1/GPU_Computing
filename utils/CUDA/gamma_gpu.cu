@@ -189,6 +189,11 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, int num
       cudaEventElapsedTime(&time2, start, end);
       time2 /= 1000;
       printf("[Gamma Correction] - GPU Elapsed time: %f sec\n\n", (time + time2));
+
+      // Destroy streams
+      for(int idx=0; idx<num_streams; idx++) {
+        CHECK(cudaStreamDestroy(streams[idx]));
+      }
     }
 
     else {
