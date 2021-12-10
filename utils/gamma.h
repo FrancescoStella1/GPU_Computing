@@ -51,9 +51,10 @@ void delHistogram(struct Histogram *hist);
  * 
  * @param hist pointer to a struct Histogram.
  * @param img_gray pointer to the grayscale image.
+ * @param num_streams number of streams to use.
  * @param size size of the grayscale image.
 */
-void gamma_correction(struct Histogram *hist, unsigned char *img_gray, const size_t size);
+void gamma_correction(struct Histogram *hist, unsigned char *img_gray, int num_streams, const size_t size);
 
 
 /**

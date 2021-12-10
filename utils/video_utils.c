@@ -209,7 +209,7 @@ void process_frames(char *path, int cpu, int num_streams, int write) {
                 write_to_file(VID_CPU_TIMING, "Gamma correction", clk_elapsed, 0, 0);
             }
             else {
-                cuda_gamma_correction(h_img_gray, size, VID_GPU_TIMING);
+                cuda_gamma_correction(h_img_gray, size, num_streams, VID_GPU_TIMING);
             }
 
             if(write) {
@@ -231,7 +231,7 @@ void process_frames(char *path, int cpu, int num_streams, int write) {
                 write_to_file(VID_CPU_TIMING, "Gradients", clk_elapsed, 0, 0);
             }
             else {
-                cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height, VID_GPU_TIMING);
+                cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height, num_streams, VID_GPU_TIMING);
             }
 
             free(h_img_gray);

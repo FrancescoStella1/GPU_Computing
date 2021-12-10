@@ -88,8 +88,8 @@ __global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_
 
 
 
-void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, unsigned char *img_grad_v, int width, int height, char *log_file) {
-    unsigned char *d_img_grad, *d_grad_h, *d_grad_v;
+void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, unsigned char *img_grad_v, int width, int height, int num_streams, char *log_file) {
+    unsigned char *d_img_gray, *d_grad_h, *d_grad_v;
 
     size_t size = width*height;
 
@@ -97,49 +97,94 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     const int h_sobelY[] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
     const size_t mask_dim = sizeof(int)*MASK_SIZE*MASK_SIZE;
 
-    CHECK(cudaMalloc((void **)&d_img_grad, size));
+    CHECK(cudaMalloc((void **)&d_img_gray, size));
     CHECK(cudaMalloc((void **)&d_grad_h, size));
     CHECK(cudaMalloc((void **)&d_grad_v, size));
-    if(d_img_grad == NULL || d_grad_h == NULL || d_grad_v == NULL) {
+    if(d_img_gray == NULL || d_grad_h == NULL || d_grad_v == NULL) {
         printf("Unable to allocate memory on GPU.\n");
         exit(EXIT_FAILURE);
     }
 
-    // Copy sobel operators to constant memory
-    CHECK(cudaMemcpyToSymbol(sobelX, &h_sobelX, mask_dim));
-    CHECK(cudaMemcpyToSymbol(sobelY, &h_sobelY, mask_dim));
-
-    CHECK(cudaMemcpy(d_img_grad, img_gray, size, cudaMemcpyHostToDevice));
-    CHECK(cudaDeviceSynchronize());
-
     dim3 block(CONV_BLOCK_SIDE, CONV_BLOCK_SIDE);
     dim3 grid((width + CONV_BLOCK_SIDE - 1)/CONV_BLOCK_SIDE, (height + CONV_BLOCK_SIDE - 1)/CONV_BLOCK_SIDE);
-    
-    // Kernel launch
+
     cudaEvent_t start, end;
     CHECK(cudaEventCreate(&start));
     CHECK(cudaEventCreate(&end));
     float time;
-    cudaEventRecord(start, 0);
-    convolutions_gpu<<<grid, block>>>(d_img_grad, d_grad_h, d_grad_v, width, height);
-    CHECK(cudaDeviceSynchronize());
-    cudaEventRecord(end, 0);
+
+    if(num_streams>1) {
+        while((size % num_streams) != 0)
+            num_streams++;
+        
+        int stream_size = size/num_streams;
+        grid.x = (stream_size + block.x - 1)/block.x;
+        
+        cudaStream_t streams[num_streams];
+        for(int idx=0; idx<num_streams; idx++) {
+            CHECK(cudaStreamCreateWithFlags(&streams[idx], cudaStreamNonBlocking));
+        }
+
+        // Pinned memory allocation
+        unsigned char *img_grad_h_pnd, *img_grad_v_pnd;
+        int stream_idx = 0;
+        CHECK(cudaHostAlloc((void **)&img_grad_h_pnd, size, cudaHostAllocDefault));
+        CHECK(cudaHostAlloc((void **)&img_grad_v_pnd, size, cudaHostAllocDefault));
+
+        CHECK(cudaEventRecord(start, 0));
+        CHECK(cudaMemcpyToSymbol(sobelX, &h_sobelX, mask_dim));
+        CHECK(cudaMemcpyToSymbol(sobelY, &h_sobelY, mask_dim));
+
+        for(int idx=0; idx<num_streams; idx++) {
+            stream_idx = idx * stream_size;
+            CHECK(cudaMemcpyAsync(&d_img_gray[stream_idx], &img_gray[stream_idx], stream_size, cudaMemcpyHostToDevice, streams[idx]));
+            convolutions_gpu<<<grid, block, 0, streams[idx]>>>(&d_img_gray[stream_idx], &d_grad_h[stream_idx], &d_grad_v[stream_idx], width, height);
+            CHECK(cudaMemcpyAsync(&img_grad_h_pnd[stream_idx], &d_grad_h[stream_idx], stream_size, cudaMemcpyDeviceToHost, streams[idx]));
+            CHECK(cudaMemcpyAsync(&img_grad_v_pnd[stream_idx], &d_grad_v[stream_idx], stream_size, cudaMemcpyDeviceToHost, streams[idx]));
+        }
+        CHECK(cudaDeviceSynchronize());
+        CHECK(cudaMemcpy(img_grad_h, img_grad_h_pnd, size, cudaMemcpyHostToHost));
+        CHECK(cudaMemcpy(img_grad_v, img_grad_v_pnd, size, cudaMemcpyHostToHost));
+        CHECK(cudaEventRecord(end, 0));
+
+        // Free some memory
+        CHECK(cudaFreeHost(img_grad_h_pnd));
+        CHECK(cudaFreeHost(img_grad_v_pnd));
+
+        // Destroy streams
+        for(int idx=0; idx<num_streams; idx++) {
+            CHECK(cudaStreamDestroy(streams[idx]));
+        }
+    }
+
+    else {
+        // Data transfer H2D
+        CHECK(cudaEventRecord(start, 0));
+        CHECK(cudaMemcpyToSymbol(sobelX, &h_sobelX, mask_dim));
+        CHECK(cudaMemcpyToSymbol(sobelY, &h_sobelY, mask_dim));
+        CHECK(cudaMemcpy(d_img_gray, img_gray, size, cudaMemcpyHostToDevice));
+        
+        convolutions_gpu<<<grid, block>>>(d_img_gray, d_grad_h, d_grad_v, width, height);
+        CHECK(cudaDeviceSynchronize());
+        
+        // D2H transfer
+        CHECK(cudaMemcpy(img_grad_h, d_grad_h, size, cudaMemcpyDeviceToHost));
+        CHECK(cudaMemcpy(img_grad_v, d_grad_v, size, cudaMemcpyDeviceToHost));
+        CHECK(cudaEventRecord(end, 0));
+    }
+
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
     time /= 1000;
     printf("[Gradients] - GPU Elapsed time: %f sec\n\n", time);
-    write_to_file(log_file, "Gradients", time, 1, 0);
+    //write_to_file(log_file, "Gradients", time, 1, 0);                     // Generates Buffer Overflow in colab
     
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
         printf("\n--> Error: %s\n", cudaGetErrorString(err));
     }
 
-    // D2H transfer
-    CHECK(cudaMemcpy(img_grad_h, d_grad_h, size, cudaMemcpyDeviceToHost));
-    CHECK(cudaMemcpy(img_grad_v, d_grad_v, size, cudaMemcpyDeviceToHost));
-
-    CHECK(cudaFree(d_img_grad));
+    CHECK(cudaFree(d_img_gray));
     CHECK(cudaFree(d_grad_h));
     CHECK(cudaFree(d_grad_v));
     CHECK(cudaEventDestroy(start));

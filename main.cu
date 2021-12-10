@@ -121,7 +121,7 @@ int main (int argc, char **argv) {
     free(h_img);
 
     if(WRITE)
-        stbi_write_jpg("images/results/testGrayScale.jpg", width, height, 1, h_img_gray, 100);
+        stbi_write_jpg("images/results/grayscale.jpg", width, height, 1, h_img_gray, 100);
 
     // Gamma correction on CPU/GPU
     if(CPU) {
@@ -135,11 +135,11 @@ int main (int argc, char **argv) {
         write_to_file(CPU_TIMING, "Gamma correction", clk_elapsed, 0, 0);
     }
     else {
-        cuda_gamma_correction(h_img_gray, size, GPU_TIMING);
+        cuda_gamma_correction(h_img_gray, size, N_STREAMS, GPU_TIMING);
     }
 
     if(WRITE)
-        stbi_write_jpg("images/results/testGammaCorrection.jpg", width, height, 1, h_img_gray, 100);
+        stbi_write_jpg("images/results/gammaCorrection.jpg", width, height, 1, h_img_gray, 100);
 
     unsigned char* gradientX = (unsigned char*)calloc(width*height, sizeof(unsigned char));
     unsigned char* gradientY = (unsigned char*)calloc(width*height, sizeof(unsigned char));
@@ -155,7 +155,7 @@ int main (int argc, char **argv) {
         write_to_file(CPU_TIMING, "Gradients", clk_elapsed, 0, 0);
     }
     else {
-        cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height, GPU_TIMING);
+        cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height, N_STREAMS, GPU_TIMING);
     }
 
     free(h_img_gray);

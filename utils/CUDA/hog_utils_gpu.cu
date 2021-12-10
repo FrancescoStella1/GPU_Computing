@@ -148,7 +148,7 @@ void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direc
     cudaEventElapsedTime(&time, start, end);
     time /= 1000;
     printf("[HOG Computation] - GPU Elapsed time: %f sec\n\n", time);
-    write_to_file(log_file, "HOG computation", time, 1, 1);
+    //write_to_file(log_file, "HOG computation", time, 1, 1);                           // Generates Buffer Overflow in colab
 
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
