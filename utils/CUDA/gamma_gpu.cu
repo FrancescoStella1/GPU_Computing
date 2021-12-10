@@ -132,12 +132,12 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, int num
       CHECK(cudaHostAlloc((void **)&h_img_gray_pnd, size, cudaHostAllocDefault));
       CHECK(cudaMalloc((void **)&d_max_intensity_streams, nBytes_streams));
       CHECK(cudaMalloc((void **)&d_num_streams, (256/L)*nBytes_streams));
-      
+
+      CHECK(cudaEventRecord(start, 0));
+
       CHECK(cudaMemcpy(h_img_gray_pnd, h_img_gray, size, cudaMemcpyHostToHost));
       CHECK(cudaMemset(d_max_intensity_streams, 0, nBytes_streams));
       CHECK(cudaMemset(d_num_streams, 0, (256/L)*nBytes_streams));
-
-      CHECK(cudaEventRecord(start, 0));
 
       for(int idx=0; idx<num_streams; idx++) {
         stream_idx = idx * stream_size;

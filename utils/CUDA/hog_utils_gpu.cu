@@ -87,7 +87,7 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
     cudaEventElapsedTime(&time, start, end);
     time /= 1000;
     printf("[Magnitude & Direction] - GPU Elapsed time: %f sec\n\n", time);
-    write_to_file(log_file, "Magnitude and Direction", time, 1, 0);
+    //write_to_file(log_file, "Magnitude and Direction", time, 1, 0);                   // Generates Buffer Overflow in colab
 
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {

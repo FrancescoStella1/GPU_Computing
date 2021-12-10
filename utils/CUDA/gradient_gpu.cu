@@ -126,18 +126,20 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
         }
 
         // Pinned memory allocation
-        unsigned char *img_grad_h_pnd, *img_grad_v_pnd;
+        unsigned char *img_gray_pnd, *img_grad_h_pnd, *img_grad_v_pnd;
         int stream_idx = 0;
+        CHECK(cudaHostAlloc((void **)&img_gray_pnd, size, cudaHostAllocDefault));
         CHECK(cudaHostAlloc((void **)&img_grad_h_pnd, size, cudaHostAllocDefault));
         CHECK(cudaHostAlloc((void **)&img_grad_v_pnd, size, cudaHostAllocDefault));
 
         CHECK(cudaEventRecord(start, 0));
+        CHECK(cudaMemcpy(img_gray_pnd, img_gray, size, cudaMemcpyHostToHost));
         CHECK(cudaMemcpyToSymbol(sobelX, &h_sobelX, mask_dim));
         CHECK(cudaMemcpyToSymbol(sobelY, &h_sobelY, mask_dim));
 
         for(int idx=0; idx<num_streams; idx++) {
             stream_idx = idx * stream_size;
-            CHECK(cudaMemcpyAsync(&d_img_gray[stream_idx], &img_gray[stream_idx], stream_size, cudaMemcpyHostToDevice, streams[idx]));
+            CHECK(cudaMemcpyAsync(&d_img_gray[stream_idx], &img_gray_pnd[stream_idx], stream_size, cudaMemcpyHostToDevice, streams[idx]));
             convolutions_gpu<<<grid, block, 0, streams[idx]>>>(&d_img_gray[stream_idx], &d_grad_h[stream_idx], &d_grad_v[stream_idx], width, height);
             CHECK(cudaMemcpyAsync(&img_grad_h_pnd[stream_idx], &d_grad_h[stream_idx], stream_size, cudaMemcpyDeviceToHost, streams[idx]));
             CHECK(cudaMemcpyAsync(&img_grad_v_pnd[stream_idx], &d_grad_v[stream_idx], stream_size, cudaMemcpyDeviceToHost, streams[idx]));
@@ -148,6 +150,7 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
         CHECK(cudaEventRecord(end, 0));
 
         // Free some memory
+        CHECK(cudaFreeHost(img_gray_pnd));
         CHECK(cudaFreeHost(img_grad_h_pnd));
         CHECK(cudaFreeHost(img_grad_v_pnd));
 
