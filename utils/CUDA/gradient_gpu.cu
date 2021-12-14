@@ -118,7 +118,12 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
             num_streams++;
         
         int stream_size = size/num_streams;
-        grid.x = (stream_size + block.x - 1)/block.x;
+        // To test
+        int stream_width = width/stream_size;
+        int stream_height = height/stream_size;
+        //grid.x = (stream_size + block.x - 1)/block.x;
+        grid.x = (stream_width + CONV_BLOCK_SIDE - 1)/CONV_BLOCK_SIDE;
+        grid.y = (stream_height + CONV_BLOCK_SIDE - 1)/CONV_BLOCK_SIDE;
         
         cudaStream_t streams[num_streams];
         for(int idx=0; idx<num_streams; idx++) {

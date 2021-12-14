@@ -257,7 +257,7 @@ void process_frames(char *path, int cpu, int num_streams, int write) {
                 write_to_file(VID_CPU_TIMING, "Magnitude and Direction", clk_elapsed, 0, 0);
             }
             else {
-                cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width*height, VID_GPU_TIMING);
+                cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width, height, num_streams, VID_GPU_TIMING);
             }
 
             free(gradientX);
@@ -282,7 +282,7 @@ void process_frames(char *path, int cpu, int num_streams, int write) {
                 write_to_file(VID_CPU_TIMING, "HOG computation", clk_elapsed, 0, 1);
             }
             else {
-                cuda_compute_hog(hog, magnitude, direction, width, height, VID_GPU_TIMING);
+                cuda_compute_hog(hog, magnitude, direction, width, height, num_streams, VID_GPU_TIMING);
             }
             frame_num++;
             free(hog);

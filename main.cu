@@ -179,7 +179,7 @@ int main (int argc, char **argv) {
         write_to_file(CPU_TIMING, "Magnitude and Direction", clk_elapsed, 0, 0);
     }
     else {
-        cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width*height, GPU_TIMING);
+        cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width, height, N_STREAMS, GPU_TIMING);
     }
 
     free(gradientX);
@@ -202,7 +202,7 @@ int main (int argc, char **argv) {
         write_to_file(CPU_TIMING, "HOG computation", clk_elapsed, 0, 1);
     }
     else {
-        cuda_compute_hog(hog, magnitude, direction, width, height, GPU_TIMING);
+        cuda_compute_hog(hog, magnitude, direction, width, height, N_STREAMS, GPU_TIMING);
     }
 
     printf("\n\n [DONE] \n\n");
