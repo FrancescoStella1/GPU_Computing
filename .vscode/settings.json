@@ -7,6 +7,8 @@
         "ranges": "c",
         "video_utils.h": "c",
         "stat.h": "c",
-        "*.ds_store": "cpp"
+        "*.ds_store": "cpp",
+        "gamma.c": "cpp",
+        "timing.c": "cpp"
     }
 }

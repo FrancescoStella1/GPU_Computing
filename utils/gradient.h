@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#define CONV_BLOCK_SIDE   8
+#define CONV_BLOCK_SIDE   32
 #define MASK_RADIUS   1
 #define MASK_SIZE   (2 * MASK_RADIUS +1)
 
@@ -41,6 +41,8 @@ void convolutionVertical(unsigned char *img_gray, unsigned char *img_gradient, i
  * @param height height of the input grayscale image.
  * @param num_streams number of streams to use.
  * @param log_file file in which to save timings of the kernels.
+ * @param write_timing int indicating if write of the timing is to be performed (0 if no write).
  * 
 */
-void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, unsigned char *img_grad_v, int width, int height, int num_streams, char *log_file);
+void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, unsigned char *img_grad_v, int width, int height, int num_streams, 
+                            char *log_file, int write_timing);

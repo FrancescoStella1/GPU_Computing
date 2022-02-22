@@ -22,7 +22,7 @@ __global__ void grayscale_gpu(unsigned char *img, unsigned char *img_gray, const
 
 
 
-void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, int height, int num_streams, char *log_file) {
+void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, int height, int num_streams, char *log_file, int write_timing) {
     // Device memory allocation
     unsigned char *d_img;
     unsigned char *d_img_gray;
@@ -105,7 +105,8 @@ void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, in
     cudaEventElapsedTime(&time, start, end);
     time /= 1000;
     printf("[Grayscale] - GPU Elapsed time: %f sec\n\n", time);
-    //write_to_file(log_file, "Grayscale", time, 1, 0);                     // Generates Buffer Overflow in colab
+    if(write_timing)
+        write_to_file(log_file, "Grayscale", time, 1, 0);
 
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {

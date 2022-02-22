@@ -3,8 +3,11 @@
 #define STB_IMAGE_WRITE_STATIC
 #define CUDA_API_PER_THREAD_DEFAULT_STREAM
 
+#include <assert.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <cuda_runtime.h>
 
@@ -22,11 +25,15 @@
 #include "./utils/timing.c"
 
 #define CUDA_CHECK   0
-#define WRITE   0
-#define CPU   1
-#define N_STREAMS   4
+#define WRITE_IMAGES   0
+#define CPU   0
+#define N_STREAMS   1
 #define CPU_TIMING   "timing_cpu.txt"
 #define GPU_TIMING   "timing_gpu.txt"
+#define WRITE_TIMING   0
+
+
+struct stat info;
 
 
 int main (int argc, char **argv) {
@@ -42,7 +49,7 @@ int main (int argc, char **argv) {
             fprintf(stderr, "[FAIL]\n\ncudaGetDeviceCount returned %d\n -> %s\n", (int)error_id, cudaGetErrorString(error_id));
             exit(EXIT_FAILURE);
         }
-        
+
         if(deviceCount==0) {
             fprintf(stderr, "No CUDA devices found!\n");
             exit(-1);
@@ -64,6 +71,11 @@ int main (int argc, char **argv) {
         printf("CUDA Driver/Runtime version: %d.%d / %d.%d\n", driverVersion/1000, (driverVersion%100)/10, runtimeVersion/1000, (runtimeVersion%100)/10);
     }
 
+    if(WRITE_IMAGES && (stat("./images/results/", &info) != 0)) {
+        printf("Does not exist.\n");
+        mkdir("./images/results/", 0777);
+    }
+
     // Load image and convert to grayscale
     int width, height, channels;
     unsigned char *img;
@@ -74,7 +86,7 @@ int main (int argc, char **argv) {
         else if(strcmp(argv[1], "-v") == 0) {
             extract_frames(argv[2]);
             printf("Frames extracted\n");
-            process_frames("./images/results/frames", CPU, N_STREAMS, WRITE);
+            process_frames("./images/results/frames", CPU, N_STREAMS, WRITE_IMAGES, WRITE_TIMING);
             exit(1);
         }
         else {
@@ -111,16 +123,17 @@ int main (int argc, char **argv) {
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
         printf("[Grayscale conversion CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
-        write_to_file(CPU_TIMING, "Grayscale", clk_elapsed, 0, 0);
+        if(WRITE_TIMING)
+            write_to_file(CPU_TIMING, "Grayscale", clk_elapsed, 0, 0);
     }
     else {
-        cuda_convert(h_img, h_img_gray, width, height, N_STREAMS, GPU_TIMING);
+        cuda_convert(h_img, h_img_gray, width, height, N_STREAMS, GPU_TIMING, WRITE_TIMING);
     }
 
     free(img);
     free(h_img);
 
-    if(WRITE)
+    if(WRITE_IMAGES)
         stbi_write_jpg("images/results/grayscale.jpg", width, height, 1, h_img_gray, 100);
 
     // Gamma correction on CPU/GPU
@@ -132,17 +145,20 @@ int main (int argc, char **argv) {
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
         free(hist);
         printf("[Gamma correction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
-        write_to_file(CPU_TIMING, "Gamma correction", clk_elapsed, 0, 0);
+        if(WRITE_TIMING)
+            write_to_file(CPU_TIMING, "Gamma correction", clk_elapsed, 0, 0);
     }
     else {
-        cuda_gamma_correction(h_img_gray, size, N_STREAMS, GPU_TIMING);
+        cuda_gamma_correction(h_img_gray, size, N_STREAMS, GPU_TIMING, WRITE_TIMING);
     }
-
-    if(WRITE)
+    
+    if(WRITE_IMAGES)
         stbi_write_jpg("images/results/gammaCorrection.jpg", width, height, 1, h_img_gray, 100);
 
     unsigned char* gradientX = (unsigned char*)calloc(width*height, sizeof(unsigned char));
     unsigned char* gradientY = (unsigned char*)calloc(width*height, sizeof(unsigned char));
+    unsigned char* gradientXg = (unsigned char*)calloc(width*height, sizeof(unsigned char));
+    unsigned char* gradientYg = (unsigned char*)calloc(width*height, sizeof(unsigned char));
 
     // Gradients computation on CPU/GPU
     if(CPU) {
@@ -152,15 +168,17 @@ int main (int argc, char **argv) {
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
         printf("[Gradients computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
-        write_to_file(CPU_TIMING, "Gradients", clk_elapsed, 0, 0);
+
+        if(WRITE_TIMING)
+            write_to_file(CPU_TIMING, "Gradients", clk_elapsed, 0, 0);
     }
     else {
-        cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height, N_STREAMS, GPU_TIMING);
+        cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height, N_STREAMS, GPU_TIMING, WRITE_TIMING);
     }
 
     free(h_img_gray);
 
-    if(WRITE) {
+    if(WRITE_IMAGES) {
         stbi_write_jpg("images/results/gradientX.jpg", width, height, 1, gradientX, 100);
         stbi_write_jpg("images/results/gradientY.jpg", width, height, 1, gradientY, 100);
     }
@@ -176,22 +194,29 @@ int main (int argc, char **argv) {
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
         printf("[Magnitude & Direction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
-        write_to_file(CPU_TIMING, "Magnitude and Direction", clk_elapsed, 0, 0);
+
+        if(WRITE_TIMING)
+            write_to_file(CPU_TIMING, "Magnitude and Direction", clk_elapsed, 0, 0);
     }
     else {
-        cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width, height, N_STREAMS, GPU_TIMING);
+        cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width, height, N_STREAMS, GPU_TIMING, WRITE_TIMING);
     }
 
     free(gradientX);
     free(gradientY);
 
-    if(WRITE) {
+    if(WRITE_IMAGES) {
         stbi_write_jpg("images/results/magnitude.jpg", width, height, 1, magnitude, 100);
         stbi_write_jpg("images/results/direction.jpg", width, height, 1, direction, 100);
     }
 
     // HOG computation on CPU/GPU
-    float *hog = NULL;
+    // size_t hog_size = allocate_histograms(width, height);
+    // float *hog = (float *)calloc(hog_size, sizeof(float));
+    int num_blocks = (width*height + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
+    size_t hog_size = NUM_BINS * num_blocks;
+    float *hog = (float *)calloc(hog_size, sizeof(float));
+    float *hogg = (float *)calloc(hog_size, sizeof(float));
 
     if(CPU) {
         clock_t clk_start = clock();
@@ -199,10 +224,12 @@ int main (int argc, char **argv) {
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
         printf("[HOG computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
-        write_to_file(CPU_TIMING, "HOG computation", clk_elapsed, 0, 1);
+
+        if(WRITE_TIMING)
+            write_to_file(CPU_TIMING, "HOG computation", clk_elapsed, 0, 1);
     }
     else {
-        cuda_compute_hog(hog, magnitude, direction, width, height, N_STREAMS, GPU_TIMING);
+        cuda_compute_hog(hog, magnitude, direction, width, height, N_STREAMS, GPU_TIMING, WRITE_TIMING);
     }
 
     printf("\n\n [DONE] \n\n");

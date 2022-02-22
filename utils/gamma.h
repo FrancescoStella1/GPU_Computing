@@ -63,5 +63,6 @@ void gamma_correction(struct Histogram *hist, unsigned char *img_gray, int num_s
  * @param h_img_gray host pointer to the grayscale image.
  * @param size size of the grayscale image.
  * @param log_file file in which to save timings of the kernels.
+ * @param write_timing int indicating if write of the timing is to be performed (0 if no write).
 */
-void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, char *log_file);
+void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, char *log_file, int write_timing);

@@ -141,7 +141,7 @@ void extract_frames(char *filename) {
 }
 
 
-void process_frames(char *path, int cpu, int num_streams, int write) {
+void process_frames(char *path, int cpu, int num_streams, int write_images, int write_timing) {
     DIR *d;
     struct dirent *dir;
     char *out_dir = "./images/results";
@@ -187,12 +187,12 @@ void process_frames(char *path, int cpu, int num_streams, int write) {
                 write_to_file(VID_CPU_TIMING, "Grayscale", clk_elapsed, 0, 0);
             }
             else {
-                cuda_convert(h_img, h_img_gray, width, height, num_streams, VID_GPU_TIMING);
+                cuda_convert(h_img, h_img_gray, width, height, num_streams, VID_GPU_TIMING, write_timing);
             }
 
             free(h_img);
 
-            if(write) {
+            if(write_images) {
                 sprintf(out, "%s/%s%d.jpg", out_dir, "grayscale_frame", frame_num);
                 stbi_write_jpg(out, width, height, 1, h_img_gray, 100);
             }
@@ -209,10 +209,10 @@ void process_frames(char *path, int cpu, int num_streams, int write) {
                 write_to_file(VID_CPU_TIMING, "Gamma correction", clk_elapsed, 0, 0);
             }
             else {
-                cuda_gamma_correction(h_img_gray, size, num_streams, VID_GPU_TIMING);
+                cuda_gamma_correction(h_img_gray, size, num_streams, VID_GPU_TIMING, write_timing);
             }
 
-            if(write) {
+            if(write_images) {
                 sprintf(out, "%s/%s%d.jpg", out_dir, "gamma_frame", frame_num);
                 stbi_write_jpg(out, width, height, 1, h_img_gray, 100);
             }
@@ -231,12 +231,12 @@ void process_frames(char *path, int cpu, int num_streams, int write) {
                 write_to_file(VID_CPU_TIMING, "Gradients", clk_elapsed, 0, 0);
             }
             else {
-                cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height, num_streams, VID_GPU_TIMING);
+                cuda_compute_gradients(h_img_gray, gradientX, gradientY, width, height, num_streams, VID_GPU_TIMING, write_timing);
             }
 
             free(h_img_gray);
 
-            if(write) {
+            if(write_images) {
                 sprintf(out, "%s/%s%d.jpg", out_dir, "gradientX_frame", frame_num);
                 stbi_write_jpg(out, width, height, 1, gradientX, 100);
                 sprintf(out, "%s/%s%d.jpg", out_dir, "gradientY_frame", frame_num);
@@ -257,13 +257,13 @@ void process_frames(char *path, int cpu, int num_streams, int write) {
                 write_to_file(VID_CPU_TIMING, "Magnitude and Direction", clk_elapsed, 0, 0);
             }
             else {
-                cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width, height, num_streams, VID_GPU_TIMING);
+                cuda_compute_mag_dir(gradientX, gradientY, magnitude, direction, width, height, num_streams, VID_GPU_TIMING, write_timing);
             }
 
             free(gradientX);
             free(gradientY);
 
-            if(write) {
+            if(write_images) {
                 sprintf(out, "%s/%s%d.jpg", out_dir, "magnitude_frame", frame_num);
                 stbi_write_jpg(out, width, height, 1, magnitude, 100);
                 sprintf(out, "%s/%s%d.jpg", out_dir, "direction_frame", frame_num);
@@ -271,7 +271,9 @@ void process_frames(char *path, int cpu, int num_streams, int write) {
             }
 
             // HOG computation on CPU/GPU
-            float *hog;
+            // float *hog;
+            size = allocate_histograms(width, height);
+            float *hog = (float *)calloc(size, sizeof(float));
 
             if(cpu) {
                 clock_t clk_start = clock();
@@ -282,7 +284,7 @@ void process_frames(char *path, int cpu, int num_streams, int write) {
                 write_to_file(VID_CPU_TIMING, "HOG computation", clk_elapsed, 0, 1);
             }
             else {
-                cuda_compute_hog(hog, magnitude, direction, width, height, num_streams, VID_GPU_TIMING);
+                cuda_compute_hog(hog, magnitude, direction, width, height, num_streams, VID_GPU_TIMING, write_timing);
             }
             frame_num++;
             free(hog);

@@ -21,5 +21,6 @@ void convert(unsigned char *img, unsigned char *img_gray, const size_t size);
  * @param height height of the image.
  * @param num_streams number of streams to use.
  * @param log_file file in which to save timings of the kernels.
+ * @param write_timing int indicating if write of the timing is to be performed (0 if no write).
 */
-void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, int height, int num_streams, char *log_file);
+void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, int height, int num_streams, char *log_file, int write_timing);

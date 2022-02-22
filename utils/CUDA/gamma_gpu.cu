@@ -77,7 +77,7 @@ __global__ void apply_gamma_gpu(unsigned char *img_gray, double gamma, double fa
 }
 
 
-void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, int num_streams, char *log_file) {
+void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, int num_streams, char *log_file, int write_timing) {
     struct Histogram *hist = createHistogram();
     unsigned int *h_max_intensity = (unsigned int *)malloc(sizeof(unsigned int));
     *h_max_intensity = 0;
@@ -172,9 +172,9 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, int num
       g = compute_gamma(hist->num, hist->cnum, size);
       factor = *h_max_intensity/pow(*h_max_intensity, 1/g);
 
-      printf("Normalized gamma value: %f\n", g);
-      printf("Factor: %f\n", factor);
-      printf("Max intensity: %u\n", *h_max_intensity);
+      // printf("Normalized gamma value: %f\n", g);
+      // printf("Factor: %f\n", factor);
+      // printf("Max intensity: %u\n", *h_max_intensity);
       
       // Run second kernel
       CHECK(cudaEventRecord(start, 0));
@@ -248,7 +248,8 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, int num
       printf("[Gamma Correction] - GPU Elapsed time: %f sec\n\n", (time + time2));
     }
     
-    //write_to_file(log_file, "Gamma Correction", (time + time2), 1, 0);              // Generates Buffer Overflow in colab
+    if(write_timing)
+      write_to_file(log_file, "Gamma Correction", (time + time2), 1, 0);
 
     // Free memory
     CHECK(cudaFree(d_img_gray));

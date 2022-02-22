@@ -32,4 +32,4 @@ void save_frame(AVFrame *frame, int width, int height, int iFrame);
 void extract_frames(char *filename, int num_frames);
 
 
-void process_frames(char *filepath, int cpu, int num_streams, int write);
+void process_frames(char *filepath, int cpu, int num_streams, int write_images, int write_timing);

@@ -1,11 +1,17 @@
 #include "hog_utils.h"
 
 
-float *allocate_histograms(int num_blocks) {
-  float *hog = (float *)calloc(NUM_BINS*num_blocks, sizeof(float));
-  return hog;
+size_t allocate_histograms_old(int num_blocks) {
+  size_t num = NUM_BINS * num_blocks;
+  // float *hog = (float *)calloc(NUM_BINS*num_blocks, sizeof(float));
+  return num;
 }
 
+size_t allocate_histograms(int width, int height) {
+  int num_blocks = (width*height + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
+  size_t num = NUM_BINS * num_blocks;
+  return num;
+}
 
 void delete_histograms(float *hog) {
   if(hog != NULL)
@@ -30,7 +36,10 @@ void compute_direction(unsigned char *gradientX, unsigned char * gradientY, unsi
 
 void compute_hog(float *hog, unsigned char *magnitude, unsigned char *direction, int width, int height) {
   int num_blocks = (width*height + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
-  hog = allocate_histograms(num_blocks);
+  // size_t size = allocate_histograms(width, height);
+  // hog = (float *)calloc(size, sizeof(float));
+  //size_t hog_size = NUM_BINS * num_blocks * sizeof(float);
+  //hog = (float *)malloc(hog_size);
 
   int row = 0;
   int col = 0;
@@ -59,7 +68,9 @@ void compute_hog(float *hog, unsigned char *magnitude, unsigned char *direction,
     row += HOG_BLOCK_SIDE;
     col = 0;
   }
+  
   for(int idx=0; idx<NUM_BINS; idx++) {
     printf("HOG - bin %d: %.2f\n", idx, hog[idx]);
   }
+  
 }

@@ -46,13 +46,14 @@ __global__ void hog_gpu(float *bins, unsigned char *magnitude, unsigned char *di
 }
 
 
-void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int width, int height, int num_streams, char *log_file) {
+void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int width, int height, 
+                          int num_streams, char *log_file, int write_timing) {
 
     unsigned char *d_gradientX;
     unsigned char *d_gradientY;
     unsigned char *d_magnitude;
     unsigned char *d_direction;
-    size_t size = width*height;
+    size_t size = width*height*sizeof(unsigned char);
 
     CHECK(cudaMalloc((void **)&d_gradientX, size));
     CHECK(cudaMalloc((void **)&d_gradientY, size));
@@ -65,6 +66,7 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
 
     dim3 block(MAGDIR_BLOCK_SIZE);
     dim3 grid((size+block.x-1)/block.x);
+    printf("Grid size w/out streams: %zu", grid);
 
     cudaEvent_t start, end;
     CHECK(cudaEventCreate(&start));
@@ -74,10 +76,11 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
     if(num_streams>1) {
         while((size % num_streams) != 0)
             num_streams++;
-        int stream_size = size/num_streams;
+        size_t stream_size = size/num_streams;
 
         grid.x = (stream_size + block.x - 1)/block.x;
-      
+        printf("Grid size with streams: %zu", grid);
+
         cudaStream_t streams[num_streams];
         for(int idx=0; idx<num_streams; idx++) {
             CHECK(cudaStreamCreateWithFlags(&streams[idx], cudaStreamNonBlocking));
@@ -158,7 +161,8 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
         }
     }
     
-    //write_to_file(log_file, "Magnitude and Direction", time, 1, 0);                   // Generates Buffer Overflow in colab
+    if(write_timing)
+        write_to_file(log_file, "Magnitude and Direction", time, 1, 0);
 
     CHECK(cudaFree(d_gradientX));
     CHECK(cudaFree(d_gradientY));
@@ -169,14 +173,17 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
 }
 
 
-void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direction, int width, int height, int num_streams, char *log_file) {
+void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direction, int width, int height, int num_streams, char *log_file, 
+                      int write_timing) {
+                          
     unsigned char *d_magnitude;
     unsigned char *d_direction;
     float *d_bins;
     size_t size = width*height;
     int num_blocks = (size + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
     size_t nBytes = NUM_BINS*num_blocks*sizeof(float);
-    hog = allocate_histograms(num_blocks);
+    // size_t hog_size = allocate_histograms(width, height);
+    // hog = (float *)malloc(nBytes);
     
     CHECK(cudaMalloc((void **)&d_magnitude, size));
     CHECK(cudaMalloc((void **)&d_direction, size));
@@ -185,7 +192,7 @@ void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direc
         printf("Unable to allocate memory on GPU.\n");
         exit(EXIT_FAILURE);
     }
-    CHECK(cudaMemset(d_bins, 0, nBytes));
+    //CHECK(cudaMemset(d_bins, 0, nBytes));
 
     dim3 block(HOG_BLOCK_SIDE, HOG_BLOCK_SIDE);
     dim3 grid((width + block.x - 1)/block.x, (height + block.y - 1)/block.y);
@@ -224,6 +231,12 @@ void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direc
         CHECK(cudaHostAlloc((void **)&direction_pnd, size, cudaHostAllocDefault));
         CHECK(cudaHostAlloc((void **)&bins_pnd, nBytes, cudaHostAllocDefault));
         CHECK(cudaMalloc((void **)&d_bins_streams, stream_bins_size));
+
+        if(magnitude_pnd == NULL || direction_pnd == NULL || bins_pnd == NULL || d_bins_streams == NULL) {
+            printf("Unable to allocate memory\n");
+            exit(EXIT_FAILURE);
+        }
+
         CHECK(cudaMemset(d_bins_streams, 0, stream_bins_size));
 
         CHECK(cudaEventRecord(start, 0));
@@ -265,7 +278,6 @@ void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direc
     else {
         CHECK(cudaMemcpy(d_magnitude, magnitude, size, cudaMemcpyHostToDevice));
         CHECK(cudaMemcpy(d_direction, direction, size, cudaMemcpyHostToDevice));
-        CHECK(cudaMemset(d_bins, 0, nBytes));
         CHECK(cudaDeviceSynchronize());
         
         cudaEventRecord(start, 0);
@@ -286,7 +298,12 @@ void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direc
         }        
     }
 
-    //write_to_file(log_file, "HOG computation", time, 1, 1);                           // Generates Buffer Overflow in colab
+    for(int i=0; i<10; i++) {
+        printf("HOG %d: %.2f\n", i, hog[i]);
+    }
+
+    if(write_timing)
+        write_to_file(log_file, "HOG computation", time, 1, 1);
 
     CHECK(cudaFree(d_magnitude));
     CHECK(cudaFree(d_direction));
