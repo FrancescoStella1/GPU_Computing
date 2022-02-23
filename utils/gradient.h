@@ -8,31 +8,31 @@
 
 
 /**
- * Calculates the gradient with horizontal convolution of a grayscale image.
+ * @brief Calculates the gradient with horizontal convolution of a grayscale image.
  *
  * @param img_gray input grayscale image.
- * @param img_gradient output.
- * @param n_rows.
- * @param n_columns.
+ * @param img_gradient output image.
+ * @param n_rows number of rows of the image.
+ * @param n_columns number of columns of the image.
  *
 */
 void convolutionHorizontal(unsigned char *img_gray, unsigned char *img_gradient, int n_rows, int n_columns);
 
 
 /**
- * Calculates the gradient with vertical convolution of a grayscale image.
+ * @brief Calculates the gradient with vertical convolution of a grayscale image.
  *
  * @param img_gray input grayscale image.
- * @param img_gradient output.
- * @param n_rows.
- * @param n_columns.
+ * @param img_gradient output image.
+ * @param n_rows number of rows of the image.
+ * @param n_columns number of columns of the image.
  *
 */
 void convolutionVertical(unsigned char *img_gray, unsigned char *img_gradient, int n_rows, int n_columns);
 
 
 /**
- * Calculates horizontal and vertical gradients of a grayscale image.
+ * @brief Calculates horizontal and vertical gradients of a grayscale image.
  * 
  * @param img_gray pointer to grayscale image used to compute gradients.
  * @param img_grad_h pointer to the image representing the horizontal gradient of the original one.
