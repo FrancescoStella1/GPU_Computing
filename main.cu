@@ -211,12 +211,9 @@ int main (int argc, char **argv) {
     }
 
     // HOG computation on CPU/GPU
-    // size_t hog_size = allocate_histograms(width, height);
-    // float *hog = (float *)calloc(hog_size, sizeof(float));
     int num_blocks = (width*height + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
     size_t hog_size = NUM_BINS * num_blocks;
     float *hog = (float *)calloc(hog_size, sizeof(float));
-    float *hogg = (float *)calloc(hog_size, sizeof(float));
 
     if(CPU) {
         clock_t clk_start = clock();

@@ -202,100 +202,25 @@ void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direc
     CHECK(cudaEventCreate(&end));
     float time;
 
-    if(num_streams>1) {
-        while((size % num_streams) != 0)
-            num_streams++;
-        int stream_size = size/num_streams;
-        int stream_width = width/num_streams;
-        int stream_height = height/num_streams;
-        
-        // To test
-        grid.x = (stream_width + block.x - 1)/block.x;
-        grid.y = (stream_height + block.y - 1)/block.y;
+    CHECK(cudaMemcpy(d_magnitude, magnitude, size, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_direction, direction, size, cudaMemcpyHostToDevice));
+    CHECK(cudaDeviceSynchronize());
     
-        cudaStream_t streams[num_streams];
-        for(int idx=0; idx<num_streams; idx++) {
-            CHECK(cudaStreamCreateWithFlags(&streams[idx], cudaStreamNonBlocking));
-        }
+    cudaEventRecord(start, 0);
+    hog_gpu<<< grid, block >>>(d_bins, d_magnitude, d_direction, width, height);
+    CHECK(cudaDeviceSynchronize());
+    
+    CHECK(cudaMemcpy(hog, d_bins, nBytes, cudaMemcpyDeviceToHost));
 
-        int stream_idx = 0;
-        int stream_blocks = (stream_size + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
-        size_t stream_bins_size = NUM_BINS*stream_blocks*sizeof(float);
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+    cudaEventElapsedTime(&time, start, end);
+    time /= 1000;
+    printf("[HOG Computation] - GPU Elapsed time: %f sec\n\n", time);
 
-        unsigned char *magnitude_pnd;
-        unsigned char *direction_pnd;
-        float *bins_pnd;
-        float *d_bins_streams;
-
-        CHECK(cudaHostAlloc((void **)&magnitude_pnd, size, cudaHostAllocDefault));
-        CHECK(cudaHostAlloc((void **)&direction_pnd, size, cudaHostAllocDefault));
-        CHECK(cudaHostAlloc((void **)&bins_pnd, nBytes, cudaHostAllocDefault));
-        CHECK(cudaMalloc((void **)&d_bins_streams, stream_bins_size));
-
-        if(magnitude_pnd == NULL || direction_pnd == NULL || bins_pnd == NULL || d_bins_streams == NULL) {
-            printf("Unable to allocate memory\n");
-            exit(EXIT_FAILURE);
-        }
-
-        CHECK(cudaMemset(d_bins_streams, 0, stream_bins_size));
-
-        CHECK(cudaEventRecord(start, 0));
-
-        CHECK(cudaMemcpyAsync(magnitude_pnd, magnitude, size, cudaMemcpyHostToHost));
-        CHECK(cudaMemcpyAsync(direction_pnd, direction, size, cudaMemcpyHostToHost));
-        CHECK(cudaDeviceSynchronize());
-
-        for(int idx=0; idx<num_streams; idx++) {
-            stream_idx = idx * stream_size;
-            CHECK(cudaMemcpyAsync(&d_magnitude[stream_idx], &magnitude_pnd[stream_idx], stream_size, cudaMemcpyHostToDevice, streams[idx]));
-            CHECK(cudaMemcpyAsync(&d_direction[stream_idx], &direction_pnd[stream_idx], stream_size, cudaMemcpyHostToDevice, streams[idx]));
-            hog_gpu<<<grid, block, 0, streams[idx]>>>(&d_bins_streams[stream_idx], &d_magnitude[stream_idx], &d_direction[stream_idx], stream_width, stream_height);
-            CHECK(cudaMemcpyAsync(&bins_pnd[stream_idx], &d_bins_streams[stream_idx], stream_size, cudaMemcpyDeviceToHost, streams[idx]));
-        }
-        CHECK(cudaDeviceSynchronize());
-
-        CHECK(cudaMemcpy(hog, bins_pnd, nBytes, cudaMemcpyHostToHost));
-
-        cudaEventRecord(end, 0);
-        cudaEventSynchronize(end);
-        cudaEventElapsedTime(&time, start, end);
-        time /= 1000;
-        printf("[HOG Computation] - GPU Elapsed time: %f sec\n\n", time);
-
-        // Free some memory
-        CHECK(cudaFreeHost(magnitude_pnd));
-        CHECK(cudaFreeHost(direction_pnd));
-        CHECK(cudaFreeHost(bins_pnd));
-        CHECK(cudaFree(d_bins_streams));
-        
-        // Destroy non-null streams
-        for(int idx=0; idx<num_streams; idx++) {
-            CHECK(cudaStreamDestroy(streams[idx]));
-      }
-
-    }
-
-    else {
-        CHECK(cudaMemcpy(d_magnitude, magnitude, size, cudaMemcpyHostToDevice));
-        CHECK(cudaMemcpy(d_direction, direction, size, cudaMemcpyHostToDevice));
-        CHECK(cudaDeviceSynchronize());
-        
-        cudaEventRecord(start, 0);
-        hog_gpu<<< grid, block >>>(d_bins, d_magnitude, d_direction, width, height);
-        CHECK(cudaDeviceSynchronize());
-        
-        CHECK(cudaMemcpy(hog, d_bins, nBytes, cudaMemcpyDeviceToHost));
-
-        cudaEventRecord(end, 0);
-        cudaEventSynchronize(end);
-        cudaEventElapsedTime(&time, start, end);
-        time /= 1000;
-        printf("[HOG Computation] - GPU Elapsed time: %f sec\n\n", time);
-
-        cudaError_t err = cudaGetLastError();
-        if(err != cudaSuccess) {
-            printf("\n--> Error: %s\n", cudaGetErrorString(err));
-        }        
+    cudaError_t err = cudaGetLastError();
+    if(err != cudaSuccess) {
+        printf("\n--> Error: %s\n", cudaGetErrorString(err));
     }
 
     for(int i=0; i<10; i++) {
