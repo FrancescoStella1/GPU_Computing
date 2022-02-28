@@ -30,7 +30,7 @@
 #define N_STREAMS   1
 #define CPU_TIMING   "timing_cpu.txt"
 #define GPU_TIMING   "timing_gpu.txt"
-#define WRITE_TIMING   0
+#define WRITE_TIMING   1                    // Must be set to 0 when profiling in order to avoid buffer overflow errors
 
 
 struct stat info;
