@@ -157,8 +157,6 @@ int main (int argc, char **argv) {
 
     unsigned char* gradientX = (unsigned char*)calloc(width*height, sizeof(unsigned char));
     unsigned char* gradientY = (unsigned char*)calloc(width*height, sizeof(unsigned char));
-    unsigned char* gradientXg = (unsigned char*)calloc(width*height, sizeof(unsigned char));
-    unsigned char* gradientYg = (unsigned char*)calloc(width*height, sizeof(unsigned char));
 
     // Gradients computation on CPU/GPU
     if(CPU) {

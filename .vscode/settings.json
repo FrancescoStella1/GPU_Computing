@@ -9,6 +9,7 @@
         "stat.h": "c",
         "*.ds_store": "cpp",
         "gamma.c": "cpp",
-        "timing.c": "cpp"
+        "timing.c": "cpp",
+        "hog_utils.c": "cpp"
     }
 }

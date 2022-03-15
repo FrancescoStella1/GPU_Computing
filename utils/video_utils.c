@@ -6,7 +6,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-#define MAX_FRAMES   10
+#define MAX_FRAMES   480
 #define VID_CPU_TIMING   "video_timing_cpu.txt"
 #define VID_GPU_TIMING   "video_timing_gpu.txt"
 
@@ -168,7 +168,7 @@ void process_frames(char *path, int cpu, int num_streams, int write_images, int 
             frame_num = atoi(begin);
             
             sprintf(frame, "%s/%s.ppm", frames_dir, dir->d_name);
-            printf("Frame path: %s\n", frame);
+            //printf("Frame path: %s\n", frame);
             img = stbi_load(frame, &width, &height, &channels, 0);
             size_t size = width * height * sizeof(unsigned char);
 
@@ -183,7 +183,7 @@ void process_frames(char *path, int cpu, int num_streams, int write_images, int 
                 convert(h_img, h_img_gray, size);
                 clock_t clk_end = clock();
                 double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
-                printf("[Grayscale conversion CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+                //printf("[Grayscale conversion CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
                 if(write_timing) {
                     write_to_file(VID_CPU_TIMING, "Grayscale", clk_elapsed, 0, 0);
                 }
@@ -207,7 +207,7 @@ void process_frames(char *path, int cpu, int num_streams, int write_images, int 
                 clock_t clk_end = clock();
                 double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
                 free(hist);
-                printf("[Gamma correction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+                //printf("[Gamma correction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
                 if(write_timing) {
                     write_to_file(VID_CPU_TIMING, "Gamma correction", clk_elapsed, 0, 0);
                 }
@@ -231,7 +231,7 @@ void process_frames(char *path, int cpu, int num_streams, int write_images, int 
                 convolutionVertical(h_img_gray, gradientY, height, width);
                 clock_t clk_end = clock();
                 double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
-                printf("[Gradients computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+                //printf("[Gradients computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
                 if(write_timing) {
                     write_to_file(VID_CPU_TIMING, "Gradients", clk_elapsed, 0, 0);
                 }
@@ -259,7 +259,7 @@ void process_frames(char *path, int cpu, int num_streams, int write_images, int 
                 compute_direction(gradientX, gradientY, direction, width*height);
                 clock_t clk_end = clock();
                 double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
-                printf("[Magnitude & Direction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+                //printf("[Magnitude & Direction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
                 if(write_timing) {
                     write_to_file(VID_CPU_TIMING, "Magnitude and Direction", clk_elapsed, 0, 0);
                 }
@@ -288,7 +288,7 @@ void process_frames(char *path, int cpu, int num_streams, int write_images, int 
                 compute_hog(hog, magnitude, direction, width, height);
                 clock_t clk_end = clock();
                 double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
-                printf("[HOG computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+                //printf("[HOG computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
                 if(write_timing) {
                     write_to_file(VID_CPU_TIMING, "HOG computation", clk_elapsed, 0, 1);
                 }

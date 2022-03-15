@@ -2,7 +2,7 @@
 #include "../common.h"
 #include "../timing.c"
 
-#define BLOCKDIM   32
+#define BLOCKDIM   64
 
 
 __global__ void grayscale_gpu(unsigned char *img, unsigned char *img_gray, const size_t size) {
@@ -104,7 +104,7 @@ void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, in
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
     time /= 1000;
-    printf("[Grayscale] - GPU Elapsed time: %f sec\n\n", time);
+    //printf("[Grayscale] - GPU Elapsed time: %f sec\n\n", time);
     if(write_timing)
         write_to_file(log_file, "Grayscale", time, 1, 0);
 

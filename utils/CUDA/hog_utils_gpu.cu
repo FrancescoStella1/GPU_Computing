@@ -38,7 +38,7 @@ __global__ void hog_gpu(float *bins, unsigned char *magnitude, unsigned char *di
     float l_value =  mag * ((dir - (DELTA_THETA/2))/DELTA_THETA);
     float u_value = mag * ((dir - cbin)/DELTA_THETA);
 
-    int blocks_per_row = (width + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
+    int blocks_per_row = (width + HOG_BLOCK_WIDTH - 1)/HOG_BLOCK_WIDTH;
     int block_idx = blockIdx.y * blocks_per_row + blockIdx.x;
 
     atomicAdd(&bins[block_idx*NUM_BINS + lbin], l_value);
@@ -66,7 +66,6 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
 
     dim3 block(MAGDIR_BLOCK_SIZE);
     dim3 grid((size+block.x-1)/block.x);
-    printf("Grid size w/out streams: %zu", grid);
 
     cudaEvent_t start, end;
     CHECK(cudaEventCreate(&start));
@@ -79,7 +78,6 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
         size_t stream_size = size/num_streams;
 
         grid.x = (stream_size + block.x - 1)/block.x;
-        printf("Grid size with streams: %zu", grid);
 
         cudaStream_t streams[num_streams];
         for(int idx=0; idx<num_streams; idx++) {
@@ -122,7 +120,7 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
         cudaEventSynchronize(end);
         cudaEventElapsedTime(&time, start, end);
         time /= 1000;
-        printf("[Magnitude & Direction] - GPU Elapsed time: %f sec\n\n", time);
+        //printf("[Magnitude & Direction] - GPU Elapsed time: %f sec\n\n", time);
 
         // Free some memory
         CHECK(cudaFreeHost(gradientX_pnd));
@@ -153,7 +151,7 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
         cudaEventSynchronize(end);
         cudaEventElapsedTime(&time, start, end);
         time /= 1000;
-        printf("[Magnitude & Direction] - GPU Elapsed time: %f sec\n\n", time);
+        //printf("[Magnitude & Direction] - GPU Elapsed time: %f sec\n\n", time);
 
         cudaError_t err = cudaGetLastError();
         if(err != cudaSuccess) {
@@ -180,7 +178,9 @@ void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direc
     unsigned char *d_direction;
     float *d_bins;
     size_t size = width*height;
-    int num_blocks = (size + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
+    int blocks_per_row = (width + HOG_BLOCK_WIDTH - 1)/HOG_BLOCK_WIDTH;
+    int blocks_per_col = (height + HOG_BLOCK_HEIGHT - 1)/HOG_BLOCK_HEIGHT;
+    int num_blocks = blocks_per_row * blocks_per_col; //(size + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
     size_t nBytes = NUM_BINS*num_blocks*sizeof(float);
     // size_t hog_size = allocate_histograms(width, height);
     // hog = (float *)malloc(nBytes);
@@ -194,7 +194,7 @@ void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direc
     }
     //CHECK(cudaMemset(d_bins, 0, nBytes));
 
-    dim3 block(HOG_BLOCK_SIDE, HOG_BLOCK_SIDE);
+    dim3 block(HOG_BLOCK_WIDTH, HOG_BLOCK_HEIGHT);
     dim3 grid((width + block.x - 1)/block.x, (height + block.y - 1)/block.y);
 
     cudaEvent_t start, end;
@@ -216,16 +216,16 @@ void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direc
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
     time /= 1000;
-    printf("[HOG Computation] - GPU Elapsed time: %f sec\n\n", time);
+    //printf("[HOG Computation] - GPU Elapsed time: %f sec\n\n", time);
 
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
         printf("\n--> Error: %s\n", cudaGetErrorString(err));
     }
 
-    for(int i=0; i<10; i++) {
-        printf("HOG %d: %.2f\n", i, hog[i]);
-    }
+    //for(int i=0; i<10; i++) {
+        //printf("HOG %d: %.2f\n", i, hog[i]);
+    //}
 
     if(write_timing)
         write_to_file(log_file, "HOG computation", time, 1, 1);

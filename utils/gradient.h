@@ -3,6 +3,8 @@
 #include <math.h>
 
 #define CONV_BLOCK_SIDE   32
+#define BDIMX   32
+#define BDIMY   16
 #define MASK_RADIUS   1
 #define MASK_SIZE   (2 * MASK_RADIUS +1)
 

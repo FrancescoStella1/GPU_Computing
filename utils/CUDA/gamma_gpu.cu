@@ -159,7 +159,7 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, int num
       cudaEventSynchronize(end);
       cudaEventElapsedTime(&time, start, end);
       time /= 1000;
-      printf("[Gamma create histogram] - GPU Elapsed time: %f sec\n\n", time);
+      //printf("[Gamma create histogram] - GPU Elapsed time: %f sec\n\n", time);
 
       CHECK(cudaFreeHost(h_max_intensity_pnd));
       CHECK(cudaFreeHost(hist_num_pnd));
@@ -188,7 +188,7 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, int num
       cudaEventSynchronize(end);
       cudaEventElapsedTime(&time2, start, end);
       time2 /= 1000;
-      printf("[Gamma Correction] - GPU Elapsed time: %f sec\n\n", (time + time2));
+      //printf("[Gamma Correction] - GPU Elapsed time: %f sec\n\n", (time + time2));
 
       // Destroy streams
       for(int idx=0; idx<num_streams; idx++) {
@@ -216,7 +216,7 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, int num
       cudaEventSynchronize(end);
       cudaEventElapsedTime(&time, start, end);
       time /= 1000;
-      printf("[Gamma create histogram] - GPU Elapsed time: %f sec\n\n", time);
+      //printf("[Gamma create histogram] - GPU Elapsed time: %f sec\n\n", time);
       cudaError_t err = cudaGetLastError();
       if(err != cudaSuccess) {
           printf("\n--> Error: %s\n", cudaGetErrorString(err));
@@ -229,9 +229,9 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, int num
       // Compute cumulative histogram and normalized gamma value on CPU
       g = compute_gamma(hist->num, hist->cnum, size);
       factor = *h_max_intensity/pow(*h_max_intensity, 1/g);
-      printf("Normalized gamma value: %f\n", g);
-      printf("Factor: %f\n", factor);
-      printf("Max intensity: %u\n", *h_max_intensity);
+      //printf("Normalized gamma value: %f\n", g);
+      //printf("Factor: %f\n", factor);
+      //printf("Max intensity: %u\n", *h_max_intensity);
       
       // Run second kernel
       CHECK(cudaEventRecord(start, 0));
@@ -245,7 +245,7 @@ void cuda_gamma_correction(unsigned char *h_img_gray, const size_t size, int num
       cudaEventSynchronize(end);
       cudaEventElapsedTime(&time2, start, end);
       time2 /= 1000;
-      printf("[Gamma Correction] - GPU Elapsed time: %f sec\n\n", (time + time2));
+      //printf("[Gamma Correction] - GPU Elapsed time: %f sec\n\n", (time + time2));
     }
     
     if(write_timing)

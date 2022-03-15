@@ -1,21 +1,26 @@
 #include "../gradient.h"
 #include "../timing.c"
 
-#define TILE_WIDTH   (CONV_BLOCK_SIDE + MASK_SIZE - 1)
+#define TILE_WIDTH   (BDIMX + MASK_SIZE - 1)
+#define TILE_HEIGHT   (BDIMY + MASK_SIZE - 1)
 
 
 __constant__ int sobelX[MASK_SIZE*MASK_SIZE*sizeof(int)];
 __constant__ int sobelY[MASK_SIZE*MASK_SIZE*sizeof(int)];
 
+typedef unsigned char uint40[5];
 
 __global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_grad_x, unsigned char *img_grad_v, int width, int height) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     int radius = MASK_RADIUS;
-    int block_m_radius = CONV_BLOCK_SIDE - radius;
+    //int block_m_radius = CONV_BLOCK_SIDE - radius;
+    int bmRx = BDIMX - radius;
+    int bmRy = BDIMY - radius;
 
-    __shared__ unsigned char img_shared[TILE_WIDTH][TILE_WIDTH];
+    __shared__ int img_shared[TILE_HEIGHT][TILE_WIDTH];
+    //__shared__ uint4 img_shared[TILE_HEIGHT*sizeof(uint4)][TILE_WIDTH*sizeof(uint4)];
     
     if (x >= width || y >= height)
         return;
@@ -28,7 +33,7 @@ __global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_
             img_shared[threadIdx.y][threadIdx.x] = input_image[(y-radius) * width + x - radius];
     
         // top right corner of the block
-        if (threadIdx.x >= block_m_radius && (x+radius) < width && (y-radius) >= 0) 
+        if (threadIdx.x >= bmRx && (x+radius) < width && (y-radius) >= 0) 
             img_shared[threadIdx.y][threadIdx.x + 2*radius] = input_image[(y-radius) * width + x + radius];
         
         // top side of the block
@@ -37,32 +42,32 @@ __global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_
     }
 
     // Bottom side of the block
-    if (threadIdx.y >= block_m_radius) {
+    if (threadIdx.y >= bmRy) {
     
         // bottom left corner of the block
         if (threadIdx.x < radius && (x-radius) >= 0 && (y+radius) < height)
             img_shared[threadIdx.y + 2*radius][threadIdx.x] = input_image[(y+radius) * width + x - radius];
 
         // bottom right corner of the block
-        if (threadIdx.x >= block_m_radius && (y+radius) < height) 
+        if (threadIdx.x >= bmRx && (y+radius) < height) 
             img_shared[threadIdx.y + 2*radius][threadIdx.x + 2*radius] = input_image[(y+radius) * width + x + radius];
     
         // bottom side of the block
         if ((y+radius) < height) 
-            img_shared[threadIdx.y + 2*radius][threadIdx.x + radius] = input_image[(y+radius) * width + x];  
+            img_shared[threadIdx.y + 2*radius][threadIdx.x + radius] = input_image[(y+radius) * width + x];
     }
 
     // Left side of the block
     if (threadIdx.x < radius) {
         if ((x-radius) >= 0) {
-            img_shared[threadIdx.y + radius][threadIdx.x] = input_image[y * width + x - radius];  
+            img_shared[threadIdx.y + radius][threadIdx.x] = input_image[y * width + x - radius];
         }
     }
 
     // Right side of the block
-    if (threadIdx.x >= block_m_radius) {
+    if (threadIdx.x >= bmRx) {
         if ((x+radius) < width) {
-            img_shared[threadIdx.y + radius][threadIdx.x + 2*radius] = input_image[y * width + x + radius];  
+            img_shared[threadIdx.y + radius][threadIdx.x + 2*radius] = input_image[y * width + x + radius];
         }
     }
       
@@ -83,9 +88,10 @@ __global__ void convolutions_gpu(unsigned char *input_image, unsigned char *img_
 	
     __syncthreads();
     
-    // write in global memory
-    img_grad_x[y*width + x] = abs(sum_x);
-    img_grad_v[y*width + x] = abs(sum_y);
+    // write in global memory the absolute values
+    img_grad_x[y*width + x] = sum_x >= 0 ? sum_x : -sum_x;
+    img_grad_v[y*width + x] = sum_y >= 0 ? sum_y : -sum_y;
+
 }
 
 
@@ -108,8 +114,8 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
         exit(EXIT_FAILURE);
     }
 
-    dim3 block(CONV_BLOCK_SIDE, CONV_BLOCK_SIDE);
-    dim3 grid((width + CONV_BLOCK_SIDE - 1)/CONV_BLOCK_SIDE, (height + CONV_BLOCK_SIDE - 1)/CONV_BLOCK_SIDE);
+    dim3 block(BDIMX, BDIMY);
+    dim3 grid((width + BDIMX - 1)/BDIMX, (height + BDIMY - 1)/BDIMY);
 
     cudaEvent_t start, end;
     CHECK(cudaEventCreate(&start));
@@ -133,7 +139,7 @@ void cuda_compute_gradients(unsigned char *img_gray, unsigned char *img_grad_h, 
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
     time /= 1000;
-    printf("[Gradients] - GPU Elapsed time: %f sec\n\n", time);
+    //printf("[Gradients] - GPU Elapsed time: %f sec\n\n", time);
     
     if(write_timing)
         write_to_file(log_file, "Gradients", time, 1, 0);

@@ -1,5 +1,7 @@
 #define PI   3.14
-#define MAGDIR_BLOCK_SIZE   32
+#define MAGDIR_BLOCK_SIZE   64
+#define HOG_BLOCK_WIDTH   32
+#define HOG_BLOCK_HEIGHT   32
 #define HOG_BLOCK_SIDE   32
 #define NUM_BINS   9
 #define DELTA_THETA   20
