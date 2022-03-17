@@ -2,7 +2,7 @@
 #include "../common.h"
 #include "../timing.c"
 
-#define BLOCKDIM   32
+#define BLOCKDIM   64
 
 
 __global__ void grayscale_gpu(unsigned char *img, unsigned char *img_gray, const size_t size) {
@@ -22,7 +22,7 @@ __global__ void grayscale_gpu(unsigned char *img, unsigned char *img_gray, const
 
 
 
-void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, int height, int num_streams, char *log_file) {
+void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, int height, int num_streams, char *log_file, int write_timing) {
     // Device memory allocation
     unsigned char *d_img;
     unsigned char *d_img_gray;
@@ -43,7 +43,7 @@ void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, in
         exit(EXIT_FAILURE);
     }
 
-    if(num_streams>0) {
+    if(num_streams>1) {
         while((size % num_streams) != 0)
             num_streams++;
         size_t size_streams_rgb = 3*(size/num_streams)*sizeof(unsigned char);
@@ -56,24 +56,30 @@ void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, in
         }
         
         unsigned char *h_img_pnd, *h_img_gray_pnd;
+        int rgb_idx = 0;
+        int gray_idx = 0;
 
-        CHECK(cudaMallocHost((void **)&h_img_pnd, size*3));
-        CHECK(cudaMallocHost((void **)&h_img_gray_pnd, size));
+        CHECK(cudaHostAlloc((void **)&h_img_pnd, size*3, cudaHostAllocDefault));
+        CHECK(cudaHostAlloc((void **)&h_img_gray_pnd, size, cudaHostAllocDefault));
 
         CHECK(cudaEventRecord(start, 0));
+        CHECK(cudaMemcpy(h_img_pnd, h_img, size*3, cudaMemcpyHostToHost));
+
         for(int idx=0; idx<num_streams; idx++) {
-            int rgb_idx = idx*size_streams_rgb;
-            int gray_idx = idx*size_streams_gray;
+            rgb_idx = idx*size_streams_rgb;
+            gray_idx = idx*size_streams_gray;
             CHECK(cudaMemcpyAsync(&d_img[rgb_idx], &h_img_pnd[rgb_idx], size_streams_rgb, cudaMemcpyHostToDevice, streams[idx]));
             grayscale_gpu<<<grid, block, 0, streams[idx]>>>(&d_img[rgb_idx], &d_img_gray[gray_idx], size_streams_gray);
             CHECK(cudaMemcpyAsync(&h_img_gray_pnd[gray_idx], &d_img_gray[gray_idx], size_streams_gray, cudaMemcpyDeviceToHost, streams[idx]));
         }
         CHECK(cudaDeviceSynchronize());
         CHECK(cudaMemcpy(h_img_gray, h_img_gray_pnd, size, cudaMemcpyHostToHost));
-        cudaEventRecord(end, 0);
+        CHECK(cudaEventRecord(end, 0));
+        
         // Free some memory
         CHECK(cudaFreeHost(h_img_pnd));
         CHECK(cudaFreeHost(h_img_gray_pnd));
+        
         // Destroy streams
         for(int idx=0; idx<num_streams; idx++) {
             CHECK(cudaStreamDestroy(streams[idx]));
@@ -98,8 +104,9 @@ void cuda_convert(unsigned char *h_img, unsigned char *h_img_gray, int width, in
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
     time /= 1000;
-    printf("[Grayscale] - GPU Elapsed time: %f sec\n\n", time);
-    write_to_file(log_file, "Grayscale", time, 1, 0);
+    //printf("[Grayscale] - GPU Elapsed time: %f sec\n\n", time);
+    if(write_timing)
+        write_to_file(log_file, "Grayscale", time, 1, 0);
 
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {

@@ -3,7 +3,7 @@
 
 
 /**
- * Saves the timing of the functions into a log file.
+ * @brief Saves the timing of the functions into a log file.
  * 
  * @param filename filename in which to save the timings.
  * @param operation indicative name of the function/operation associated to the elapsed time.

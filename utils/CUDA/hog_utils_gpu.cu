@@ -38,7 +38,7 @@ __global__ void hog_gpu(float *bins, unsigned char *magnitude, unsigned char *di
     float l_value =  mag * ((dir - (DELTA_THETA/2))/DELTA_THETA);
     float u_value = mag * ((dir - cbin)/DELTA_THETA);
 
-    int blocks_per_row = (width + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
+    int blocks_per_row = (width + HOG_BLOCK_WIDTH - 1)/HOG_BLOCK_WIDTH;
     int block_idx = blockIdx.y * blocks_per_row + blockIdx.x;
 
     atomicAdd(&bins[block_idx*NUM_BINS + lbin], l_value);
@@ -46,30 +46,23 @@ __global__ void hog_gpu(float *bins, unsigned char *magnitude, unsigned char *di
 }
 
 
-void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int dim, char *log_file) {
+void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, unsigned char *magnitude, unsigned char *direction, int width, int height, 
+                          int num_streams, char *log_file, int write_timing) {
 
     unsigned char *d_gradientX;
     unsigned char *d_gradientY;
     unsigned char *d_magnitude;
     unsigned char *d_direction;
-    size_t size = dim;
+    size_t size = width*height*sizeof(unsigned char);
 
-    CHECK(cudaMallocHost((void **)&d_gradientX, size));
-    CHECK(cudaMallocHost((void **)&d_gradientY, size));
-    CHECK(cudaMallocHost((void **)&d_magnitude, size));
-    CHECK(cudaMallocHost((void **)&d_direction, size));
-
+    CHECK(cudaMalloc((void **)&d_gradientX, size));
+    CHECK(cudaMalloc((void **)&d_gradientY, size));
+    CHECK(cudaMalloc((void **)&d_magnitude, size));
+    CHECK(cudaMalloc((void **)&d_direction, size));
     if(d_gradientX == NULL || d_gradientY == NULL || d_magnitude == NULL || d_direction == NULL)   {
         printf("Unable to allocate memory on GPU.\n");
         exit(EXIT_FAILURE);
     }
-
-    CHECK(cudaMemcpyAsync(d_gradientX, gradientX, size, cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpyAsync(d_gradientY, gradientY, size, cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpyAsync(d_magnitude, magnitude, size, cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpyAsync(d_direction, direction, size, cudaMemcpyHostToDevice));
-
-    CHECK(cudaDeviceSynchronize());
 
     dim3 block(MAGDIR_BLOCK_SIZE);
     dim3 grid((size+block.x-1)/block.x);
@@ -78,43 +71,119 @@ void cuda_compute_mag_dir(unsigned char *gradientX, unsigned char *gradientY, un
     CHECK(cudaEventCreate(&start));
     CHECK(cudaEventCreate(&end));
     float time;
-    
-    cudaEventRecord(start, 0);
-    mag_dir_gpu<<< grid, block >>>(d_gradientX, d_gradientY, d_magnitude, d_direction, size);
-    CHECK(cudaDeviceSynchronize());
-    cudaEventRecord(end, 0);
-    cudaEventSynchronize(end);
-    cudaEventElapsedTime(&time, start, end);
-    time /= 1000;
-    printf("[Magnitude & Direction] - GPU Elapsed time: %f sec\n\n", time);
-    write_to_file(log_file, "Magnitude and Direction", time, 1, 0);
 
-    cudaError_t err = cudaGetLastError();
-    if(err != cudaSuccess) {
-        printf("\n--> Error: %s\n", cudaGetErrorString(err));
+    if(num_streams>1) {
+        while((size % num_streams) != 0)
+            num_streams++;
+        size_t stream_size = size/num_streams;
+
+        grid.x = (stream_size + block.x - 1)/block.x;
+
+        cudaStream_t streams[num_streams];
+        for(int idx=0; idx<num_streams; idx++) {
+            CHECK(cudaStreamCreateWithFlags(&streams[idx], cudaStreamNonBlocking));
+        }
+
+        int stream_idx = 0;
+
+        unsigned char *gradientX_pnd;
+        unsigned char *gradientY_pnd;
+        unsigned char *magnitude_pnd;
+        unsigned char *direction_pnd;
+
+        CHECK(cudaHostAlloc((void **)&gradientX_pnd, size, cudaHostAllocDefault));
+        CHECK(cudaHostAlloc((void **)&gradientY_pnd, size, cudaHostAllocDefault));
+        CHECK(cudaHostAlloc((void **)&magnitude_pnd, size, cudaHostAllocDefault));
+        CHECK(cudaHostAlloc((void **)&direction_pnd, size, cudaHostAllocDefault));
+
+        CHECK(cudaEventRecord(start, 0));
+
+        CHECK(cudaMemcpyAsync(gradientX_pnd, gradientX, size, cudaMemcpyHostToHost));
+        CHECK(cudaMemcpyAsync(gradientY_pnd, gradientY, size, cudaMemcpyHostToHost));
+        CHECK(cudaDeviceSynchronize());
+
+        for(int idx=0; idx<num_streams; idx++) {
+            stream_idx = idx * stream_size;
+            CHECK(cudaMemcpyAsync(&d_gradientX[stream_idx], &gradientX_pnd[stream_idx], stream_size, cudaMemcpyHostToDevice, streams[idx]));
+            CHECK(cudaMemcpyAsync(&d_gradientY[stream_idx], &gradientY_pnd[stream_idx], stream_size, cudaMemcpyHostToDevice, streams[idx]));
+            mag_dir_gpu<<<grid, block, 0, streams[idx]>>>(&d_gradientX[stream_idx], &d_gradientY[stream_idx], &d_magnitude[stream_idx], &d_direction[stream_idx], stream_size);
+            CHECK(cudaMemcpyAsync(&magnitude_pnd[stream_idx], &d_magnitude[stream_idx], stream_size, cudaMemcpyDeviceToHost, streams[idx]));
+            CHECK(cudaMemcpyAsync(&direction_pnd[stream_idx], &d_direction[stream_idx], stream_size, cudaMemcpyDeviceToHost, streams[idx]));
+        }
+        CHECK(cudaDeviceSynchronize());
+        CHECK(cudaMemcpyAsync(magnitude, magnitude_pnd, size, cudaMemcpyHostToHost));
+        CHECK(cudaMemcpyAsync(direction, direction_pnd, size, cudaMemcpyHostToHost));
+
+        CHECK(cudaDeviceSynchronize());
+
+        cudaEventRecord(end, 0);
+        cudaEventSynchronize(end);
+        cudaEventElapsedTime(&time, start, end);
+        time /= 1000;
+        //printf("[Magnitude & Direction] - GPU Elapsed time: %f sec\n\n", time);
+
+        // Free some memory
+        CHECK(cudaFreeHost(gradientX_pnd));
+        CHECK(cudaFreeHost(gradientY_pnd));
+        CHECK(cudaFreeHost(magnitude_pnd));
+        CHECK(cudaFreeHost(direction_pnd));
+
+        // Destroy non-null streams
+        for(int idx=0; idx<num_streams; idx++) {
+            CHECK(cudaStreamDestroy(streams[idx]));
+      }
     }
 
-    CHECK(cudaMemcpyAsync(magnitude, d_magnitude, size, cudaMemcpyDeviceToHost));
-    CHECK(cudaMemcpyAsync(direction, d_direction, size, cudaMemcpyDeviceToHost));
+    else {
+        CHECK(cudaMemcpy(d_gradientX, gradientX, size, cudaMemcpyHostToDevice));
+        CHECK(cudaMemcpy(d_gradientY, gradientY, size, cudaMemcpyHostToDevice));
+        CHECK(cudaMemcpy(d_magnitude, magnitude, size, cudaMemcpyHostToDevice));
+        CHECK(cudaMemcpy(d_direction, direction, size, cudaMemcpyHostToDevice));
 
-    CHECK(cudaDeviceSynchronize());
+        cudaEventRecord(start, 0);
+        mag_dir_gpu<<< grid, block >>>(d_gradientX, d_gradientY, d_magnitude, d_direction, size);
+        CHECK(cudaDeviceSynchronize());
+        
+        CHECK(cudaMemcpy(magnitude, d_magnitude, size, cudaMemcpyDeviceToHost));
+        CHECK(cudaMemcpy(direction, d_direction, size, cudaMemcpyDeviceToHost));
+        
+        cudaEventRecord(end, 0);
+        cudaEventSynchronize(end);
+        cudaEventElapsedTime(&time, start, end);
+        time /= 1000;
+        //printf("[Magnitude & Direction] - GPU Elapsed time: %f sec\n\n", time);
 
-    CHECK(cudaFreeHost(d_gradientX));
-    CHECK(cudaFreeHost(d_gradientY));
-    CHECK(cudaFreeHost(d_magnitude));
-    CHECK(cudaFreeHost(d_direction));
+        cudaError_t err = cudaGetLastError();
+        if(err != cudaSuccess) {
+            printf("\n--> Error: %s\n", cudaGetErrorString(err));
+        }
+    }
+    
+    if(write_timing)
+        write_to_file(log_file, "Magnitude and Direction", time, 1, 0);
+
+    CHECK(cudaFree(d_gradientX));
+    CHECK(cudaFree(d_gradientY));
+    CHECK(cudaFree(d_magnitude));
+    CHECK(cudaFree(d_direction));
     CHECK(cudaEventDestroy(start));
     CHECK(cudaEventDestroy(end));
 }
 
 
-void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direction, int width, int height, char *log_file) {
-    unsigned char *d_magnitude, *d_direction;
+void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direction, int width, int height, int num_streams, char *log_file, 
+                      int write_timing) {
+                          
+    unsigned char *d_magnitude;
+    unsigned char *d_direction;
     float *d_bins;
     size_t size = width*height;
-    int num_blocks = (size + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
+    int blocks_per_row = (width + HOG_BLOCK_WIDTH - 1)/HOG_BLOCK_WIDTH;
+    int blocks_per_col = (height + HOG_BLOCK_HEIGHT - 1)/HOG_BLOCK_HEIGHT;
+    int num_blocks = blocks_per_row * blocks_per_col; //(size + HOG_BLOCK_SIDE - 1)/HOG_BLOCK_SIDE;
     size_t nBytes = NUM_BINS*num_blocks*sizeof(float);
-    hog = allocate_histograms(num_blocks);
+    // size_t hog_size = allocate_histograms(width, height);
+    // hog = (float *)malloc(nBytes);
     
     CHECK(cudaMalloc((void **)&d_magnitude, size));
     CHECK(cudaMalloc((void **)&d_direction, size));
@@ -123,39 +192,43 @@ void cuda_compute_hog(float *hog, unsigned char *magnitude, unsigned char *direc
         printf("Unable to allocate memory on GPU.\n");
         exit(EXIT_FAILURE);
     }
+    //CHECK(cudaMemset(d_bins, 0, nBytes));
 
-    // To do: implement streams
-    CHECK(cudaMemcpy(d_magnitude, magnitude, size, cudaMemcpyHostToDevice));
-    CHECK(cudaMemcpy(d_direction, direction, size, cudaMemcpyHostToDevice));
-    //CHECK(cudaMemcpyAsync(d_bins, hog, nBytes, cudaMemcpyHostToDevice));
-    CHECK(cudaMemset(d_bins, 0,nBytes));
-    CHECK(cudaDeviceSynchronize());
-
-    dim3 block(HOG_BLOCK_SIDE, HOG_BLOCK_SIDE);
+    dim3 block(HOG_BLOCK_WIDTH, HOG_BLOCK_HEIGHT);
     dim3 grid((width + block.x - 1)/block.x, (height + block.y - 1)/block.y);
-
 
     cudaEvent_t start, end;
     CHECK(cudaEventCreate(&start));
     CHECK(cudaEventCreate(&end));
     float time;
+
+    CHECK(cudaMemcpy(d_magnitude, magnitude, size, cudaMemcpyHostToDevice));
+    CHECK(cudaMemcpy(d_direction, direction, size, cudaMemcpyHostToDevice));
+    CHECK(cudaDeviceSynchronize());
     
     cudaEventRecord(start, 0);
     hog_gpu<<< grid, block >>>(d_bins, d_magnitude, d_direction, width, height);
     CHECK(cudaDeviceSynchronize());
+    
+    CHECK(cudaMemcpy(hog, d_bins, nBytes, cudaMemcpyDeviceToHost));
+
     cudaEventRecord(end, 0);
     cudaEventSynchronize(end);
     cudaEventElapsedTime(&time, start, end);
     time /= 1000;
-    printf("[HOG Computation] - GPU Elapsed time: %f sec\n\n", time);
-    write_to_file(log_file, "HOG computation", time, 1, 1);
+    //printf("[HOG Computation] - GPU Elapsed time: %f sec\n\n", time);
 
     cudaError_t err = cudaGetLastError();
     if(err != cudaSuccess) {
         printf("\n--> Error: %s\n", cudaGetErrorString(err));
     }
 
-    CHECK(cudaMemcpy(hog, d_bins, nBytes, cudaMemcpyDeviceToHost));
+    //for(int i=0; i<10; i++) {
+        //printf("HOG %d: %.2f\n", i, hog[i]);
+    //}
+
+    if(write_timing)
+        write_to_file(log_file, "HOG computation", time, 1, 1);
 
     CHECK(cudaFree(d_magnitude));
     CHECK(cudaFree(d_direction));

@@ -15,7 +15,8 @@ extern "C" {
 
 
 /**
- * Saves a frame in a .ppm file
+ * @brief Saves a frame in a .ppm file.
+ * 
  * @param frame pointer to the decoded video frame.
  * @param width width of the picture to save.
  * @param height height of the picture to save.
@@ -25,11 +26,21 @@ void save_frame(AVFrame *frame, int width, int height, int iFrame);
 
 
 /**
- * Extracts frames from a video.
+ * @brief Extracts frames from a video.
+ * 
  * @param filename path to the video file.
  * @param num_frames maximum number of frames to extract.
 */
 void extract_frames(char *filename, int num_frames);
 
 
-void process_frames(char *filepath, int cpu, int num_streams, int write);
+/**
+ * @brief Applies the HOG algorithm to all the frames in a videoclip.
+ * 
+ * @param filepath path to the video file.
+ * @param cpu integer indicating if CPU is used (1: CPU, 0: GPU).
+ * @param num_streams number of non-null streams to use.
+ * @param write_images integer indicating if images must be stored.
+ * @param write_timing integer indicating if processing time must be stored.
+*/
+void process_frames(char *filepath, int cpu, int num_streams, int write_images, int write_timing);

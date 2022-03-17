@@ -1,0 +1,429 @@
+Grayscale
+	0.000883
+Gamma Correction
+	0.001901
+Gradients
+	0.000667
+Magnitude and Direction
+	0.000528
+HOG computation
+	0.000647
+
+###
+
+Grayscale
+	0.001350
+Gamma Correction
+	0.002804
+Gradients
+	0.000865
+Magnitude and Direction
+	0.001090
+HOG computation
+	0.000983
+
+###
+
+Grayscale
+	0.000922
+Gamma Correction
+	0.001993
+Gradients
+	0.000740
+Magnitude and Direction
+	0.000574
+HOG computation
+	0.000740
+
+###
+
+Grayscale
+	0.000906
+Gamma Correction
+	0.001964
+Gradients
+	0.000611
+Magnitude and Direction
+	0.000560
+HOG computation
+	0.000693
+
+###
+
+Grayscale
+	0.000977
+Gamma Correction
+	0.002106
+Gradients
+	0.000653
+Magnitude and Direction
+	0.000700
+HOG computation
+	0.000714
+
+###
+
+Grayscale
+	0.001051
+Gamma Correction
+	0.002282
+Gradients
+	0.000725
+Magnitude and Direction
+	0.000789
+HOG computation
+	0.000820
+
+###
+
+Grayscale
+	0.001116
+Gamma Correction
+	0.002297
+Gradients
+	0.000747
+Magnitude and Direction
+	0.000822
+HOG computation
+	0.000802
+
+###
+
+Grayscale
+	0.000581
+Gamma Correction
+	0.001271
+Gradients
+	0.000478
+Magnitude and Direction
+	0.000318
+HOG computation
+	0.000469
+
+###
+
+Grayscale
+	0.000362
+Gamma Correction
+	0.000778
+Gradients
+	0.000272
+Magnitude and Direction
+	0.000211
+HOG computation
+	0.000273
+
+###
+
+Grayscale
+	0.001029
+Gamma Correction
+	0.002205
+Gradients
+	0.000678
+Magnitude and Direction
+	0.000785
+HOG computation
+	0.000761
+
+###
+
+Grayscale
+	0.001000
+Gamma Correction
+	0.001915
+Gradients
+	0.000680
+Magnitude and Direction
+	0.000516
+HOG computation
+	0.000655
+
+###
+
+Grayscale
+	0.000896
+Gamma Correction
+	0.001899
+Gradients
+	0.000670
+Magnitude and Direction
+	0.000634
+HOG computation
+	0.000707
+
+###
+
+Grayscale
+	0.001280
+Gamma Correction
+	0.003085
+Gradients
+	0.000864
+Magnitude and Direction
+	0.001045
+HOG computation
+	0.000961
+
+###
+
+Grayscale
+	0.000916
+Gamma Correction
+	0.001979
+Gradients
+	0.000712
+Magnitude and Direction
+	0.000585
+HOG computation
+	0.000701
+
+###
+
+Grayscale
+	0.000946
+Gamma Correction
+	0.002001
+Gradients
+	0.000639
+Magnitude and Direction
+	0.000606
+HOG computation
+	0.000672
+
+###
+
+Grayscale
+	0.001027
+Gamma Correction
+	0.002056
+Gradients
+	0.000673
+Magnitude and Direction
+	0.000636
+HOG computation
+	0.000781
+
+###
+
+Grayscale
+	0.001034
+Gamma Correction
+	0.002255
+Gradients
+	0.000723
+Magnitude and Direction
+	0.000765
+HOG computation
+	0.000795
+
+###
+
+Grayscale
+	0.001058
+Gamma Correction
+	0.002348
+Gradients
+	0.000745
+Magnitude and Direction
+	0.000808
+HOG computation
+	0.000864
+
+###
+
+Grayscale
+	0.000712
+Gamma Correction
+	0.001220
+Gradients
+	0.000398
+Magnitude and Direction
+	0.000321
+HOG computation
+	0.000423
+
+###
+
+Grayscale
+	0.000390
+Gamma Correction
+	0.000779
+Gradients
+	0.000299
+Magnitude and Direction
+	0.000240
+HOG computation
+	0.000279
+
+###
+
+Grayscale
+	0.001018
+Gamma Correction
+	0.002206
+Gradients
+	0.000686
+Magnitude and Direction
+	0.000747
+HOG computation
+	0.000790
+
+###
+
+Grayscale
+	0.000878
+Gamma Correction
+	0.001853
+Gradients
+	0.000632
+Magnitude and Direction
+	0.000549
+HOG computation
+	0.000633
+
+###
+
+Grayscale
+	0.000945
+Gamma Correction
+	0.001890
+Gradients
+	0.000662
+Magnitude and Direction
+	0.000551
+HOG computation
+	0.000657
+
+###
+
+Grayscale
+	0.001279
+Gamma Correction
+	0.002844
+Gradients
+	0.000956
+Magnitude and Direction
+	0.001174
+HOG computation
+	0.000962
+
+###
+
+Grayscale
+	0.000990
+Gamma Correction
+	0.002067
+Gradients
+	0.000611
+Magnitude and Direction
+	0.000650
+HOG computation
+	0.000707
+
+###
+
+Grayscale
+	0.000906
+Gamma Correction
+	0.001965
+Gradients
+	0.000672
+Magnitude and Direction
+	0.000572
+HOG computation
+	0.000700
+
+###
+
+Grayscale
+	0.000988
+Gamma Correction
+	0.002086
+Gradients
+	0.000698
+Magnitude and Direction
+	0.000646
+HOG computation
+	0.000741
+
+###
+
+Grayscale
+	0.001045
+Gamma Correction
+	0.002230
+Gradients
+	0.000770
+Magnitude and Direction
+	0.000798
+HOG computation
+	0.000803
+
+###
+
+Grayscale
+	0.001058
+Gamma Correction
+	0.002383
+Gradients
+	0.000798
+Magnitude and Direction
+	0.000845
+HOG computation
+	0.000834
+
+###
+
+Grayscale
+	0.000664
+Gamma Correction
+	0.001269
+Gradients
+	0.000447
+Magnitude and Direction
+	0.000330
+HOG computation
+	0.000414
+
+###
+
+Grayscale
+	0.000359
+Gamma Correction
+	0.000761
+Gradients
+	0.000314
+Magnitude and Direction
+	0.000217
+HOG computation
+	0.000266
+
+###
+
+Grayscale
+	0.001105
+Gamma Correction
+	0.002246
+Gradients
+	0.000730
+Magnitude and Direction
+	0.000895
+HOG computation
+	0.000772
+
+###
+
+Grayscale
+	0.000868
+Gamma Correction
+	0.001906
+Gradients
+	0.000653
+Magnitude and Direction
+	0.000516
+HOG computation
+	0.000655
+
+###
+
