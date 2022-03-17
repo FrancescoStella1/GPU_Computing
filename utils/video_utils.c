@@ -6,7 +6,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-#define MAX_FRAMES   480
+#define MAX_FRAMES   10
 #define VID_CPU_TIMING   "video_timing_cpu.txt"
 #define VID_GPU_TIMING   "video_timing_gpu.txt"
 

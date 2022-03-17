@@ -100,8 +100,59 @@ def read_from_file(filename, device):
     return dct
 
 
+def read_from_file_avg(filename, device):
+	r"""
+	Reads stats from timing file.
+
+	Parameters
+	----------
+	filename: str
+		Name of the file to read.
+    device: str
+        Device for which to compute execution times.
+
+	Returns
+	-------
+	dct: dict
+		Dict containing as keys/values \
+			|- {device: d} : d is the device to which execution time refers.\
+			|- {grayscale: t} : t is the average execution time for grayscale conversion.\
+			|- {gamma: t} : t is the average execution time for gamma correction.\
+			|- {gradients: t} : t is the average execution time for gradients computation.\
+			|- {magdir: t} : t is the average execution time for magnitude and direction computation.\
+			|- {hog: t} : t is the average execution time for HOG computation.
+	"""
+	with open(filename, 'r') as f:
+		data = f.read()
+	dct = {'device': device}
+	timings = data.split("###")
+	num = len(timings)
+	grayscale_avg = 0
+	gamma_avg = 0
+	gradients_avg = 0
+	magdir_avg = 0
+	hog_avg = 0
+	for timing in timings:
+		stats = timing.split('\n')
+		stats = list(filter(lambda x: x!='', stats))
+		if len(stats) == 0:
+			continue
+		grayscale_avg += float(stats[1])
+		gamma_avg += float(stats[3])
+		gradients_avg += float(stats[5])
+		magdir_avg += float(stats[7])
+		hog_avg += float(stats[9])
+	
+	trunc = 5
+	dct['grayscale'] = round(grayscale_avg/num, trunc)
+	dct['gamma'] = round(gamma_avg/num, trunc)
+	dct['gradients'] = round(gradients_avg/num, trunc)
+	dct['magdir'] = round(magdir_avg/num, trunc)
+	dct['hog'] = round(hog_avg/num, trunc)
+	return dct
+
 
 if __name__=='__main__':
-    cpu = read_from_file('video_timing_cpu.txt', 'cpu')
-    gpu = read_from_file('video_timing_gpu.txt', 'gpu')
-    plot_stats(cpu, gpu, 'Steps of the algorithm', 'Execution time (s)', 'Execution time on test videoclip')
+    cpu = read_from_file_avg('timing_cpu.txt', 'cpu')
+    gpu = read_from_file_avg('timing_gpu.txt', 'gpu')
+    plot_stats(cpu, gpu, 'Steps of the algorithm', 'Execution time (s)', 'Average execution time on dataset images')

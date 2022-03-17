@@ -30,7 +30,7 @@
 #define N_STREAMS   1
 #define CPU_TIMING   "timing_cpu.txt"
 #define GPU_TIMING   "timing_gpu.txt"
-#define WRITE_TIMING   1                    // Must be set to 0 when profiling in order to avoid buffer overflow errors
+#define WRITE_TIMING   0                    // Must be set to 0 when profiling in order to avoid buffer overflow errors
 
 
 struct stat info;
@@ -122,7 +122,7 @@ int main (int argc, char **argv) {
         convert(h_img, h_img_gray, size);
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
-        printf("[Grayscale conversion CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+        //printf("[Grayscale conversion CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
         if(WRITE_TIMING)
             write_to_file(CPU_TIMING, "Grayscale", clk_elapsed, 0, 0);
     }
@@ -144,7 +144,7 @@ int main (int argc, char **argv) {
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
         free(hist);
-        printf("[Gamma correction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+        //printf("[Gamma correction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
         if(WRITE_TIMING)
             write_to_file(CPU_TIMING, "Gamma correction", clk_elapsed, 0, 0);
     }
@@ -165,7 +165,7 @@ int main (int argc, char **argv) {
         convolutionVertical(h_img_gray, gradientY, height, width);
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
-        printf("[Gradients computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+        //printf("[Gradients computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
 
         if(WRITE_TIMING)
             write_to_file(CPU_TIMING, "Gradients", clk_elapsed, 0, 0);
@@ -191,7 +191,7 @@ int main (int argc, char **argv) {
         compute_direction(gradientX, gradientY, direction, width*height);
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
-        printf("[Magnitude & Direction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+        //printf("[Magnitude & Direction CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
 
         if(WRITE_TIMING)
             write_to_file(CPU_TIMING, "Magnitude and Direction", clk_elapsed, 0, 0);
@@ -218,7 +218,7 @@ int main (int argc, char **argv) {
         compute_hog(hog, magnitude, direction, width, height);
         clock_t clk_end = clock();
         double clk_elapsed = (double)(clk_end - clk_start)/CLOCKS_PER_SEC;
-        printf("[HOG computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
+        //printf("[HOG computation CPU] - Elapsed time: %.4f\n\n", clk_elapsed);
 
         if(WRITE_TIMING)
             write_to_file(CPU_TIMING, "HOG computation", clk_elapsed, 0, 1);
