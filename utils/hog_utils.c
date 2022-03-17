@@ -49,7 +49,7 @@ void compute_hog(float *hog, unsigned char *magnitude, unsigned char *direction,
     while(col < width) {
       for(int i = row; i < row + HOG_BLOCK_SIDE; i++) {
         for(int j = col; j < col + HOG_BLOCK_SIDE; j++) {
-          int lbin = (direction[i*width + j] - DELTA_THETA/2)/DELTA_THETA; //direction[i*width + j]/DELTA_THETA;
+          int lbin = direction[i*width + j]/DELTA_THETA;
           int ubin = lbin + 1;
           if(ubin>=NUM_BINS)
             ubin = 0;
