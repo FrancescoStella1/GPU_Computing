@@ -23,10 +23,14 @@ There are two python scripts for generating plots for comparison purposes. Befor
 
 ## Some achieved results
 
+The following table shows some achieved speed-up. Execution times are in seconds.
+Average execution times and speed-ups from a set of 12 images have been computed.
+Then, the first 20 seconds (480 frames) of a test video have been used to compute absolute execution times and speed-up.
+
 
 |   | CPU  &nbsp;&nbsp; | GPU (1 stream) &nbsp;&nbsp; | GPU (2 streams)  &nbsp;&nbsp; | GPU (4 streams) &nbsp;&nbsp; |
 |---|:-----:|:----------------:|:-----------------:|:----------------:|
-| immagini  | 0.107  | 0.004  | 0.003  | 0.003 |
-| speed-up immagini | 0% | 96.3% | 97.2% | 97.2% |
+| images  | 0.107  | 0.004  | 0.003  | 0.003 |
+| speed-up images | 0% | 96.3% | 97.2% | 97.2% |
 | video | 59.05 | 2.04 | 1.76 | 1.59 |
 | speed-up video | 0% | 96.54% | 97.02% | 97.31% |
